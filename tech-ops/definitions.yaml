@@ -1,0 +1,227 @@
+tosca_definitions_version: dell_1_1
+
+imports:
+  - dell/types/types.yaml
+  - plugin:edge-plugin
+  - plugin:utilities-plugin?version=>=3.1.3.0
+  - plugin:fabric-plugin?version=>=3.3.2.0
+
+dsl_definitions:
+
+# Environment Checks
+  env_precheck_inputs: &env_precheck_inputs
+    script_path: tech-ops/scripts/env_precheck.sh
+    process:
+      env:
+        OFFLINE_MODE: { get_input: offline_mode }
+        OFFLINE_BINARY_URL: { get_input: offline_binary_url }
+        OFFLINE_BINARY_USER: { get_input: offline_binary_access_user }
+        OFFLINE_BINARY_PASSWORD: { get_secret: { get_input: offline_binary_access_token } }
+        SCRIPT_URL: { get_input: script_url }
+        RUN_ARG: { get_input: run_arg }
+        REG_URL: { get_input: registry_url }
+        REG_USER: { get_input: registry_access_user }
+        REG_PASS: { get_input: registry_password }
+        TLS_SAN: { get_input: tls_san }
+        JOIN_MODE: { get_input: join_mode }
+        JOIN_SERVER: { get_input: join_server }
+        JOIN_TOKEN: { get_input: join_token }
+    fabric_env:
+      host_string: { get_attribute: [vm_platform, capabilities, vm_name] }
+      user: { get_attribute: [vm_platform, capabilities, vm_user_name] }
+      key: { get_secret: { get_attribute: [vm_platform, capabilities, vm_ssh_private_key] } }
+      port: 22
+    hide_output: { get_input: hide_log_output }
+    proxy_settings:
+      get_attribute: [ vm_info, connection_proxy_settings ]
+
+  env_postcheck_inputs: &env_postcheck_inputs
+    script_path: tech-ops/scripts/env_postcheck.sh
+    process:
+      env:
+        RUN_ARG: { get_input: run_arg }
+        UPLOAD_OFFLINE_PACKAGE: { get_input: upload_package }
+        UPLOAD_BASE_URL: { get_input: upload_binary_url }
+        UPLOAD_OFFLINE_PACKAGE_USER: { get_input: upload_binary_access_user }
+        UPLOAD_OFFLINE_PACKAGE_PASSWORD: { get_secret: { get_input: upload_binary_access_token } }
+    fabric_env:
+      host_string: { get_attribute: [vm_platform, capabilities, vm_name] }
+      user: { get_attribute: [vm_platform, capabilities, vm_user_name] }
+      key: { get_secret: { get_attribute: [vm_platform, capabilities, vm_ssh_private_key] } }
+      port: 22
+    hide_output: { get_input: hide_log_output }
+    proxy_settings:
+      get_attribute: [ vm_info, connection_proxy_settings ]
+
+# App deploy
+  run_install_cmds: &run_install_cmds
+    - concat: [ "sudo -E ./rke2_installer.sh ", { get_attribute: [ env_precheck, capabilities, install_cmd ] } ]
+  run_uninstall_cmds: &run_uninstall_cmds
+    - "sudo -E ./rke2_installer.sh uninstall"
+  shell_env: &shell_env
+    # RKE2 Cluster Config
+    RKE2_VERSION: { get_input: rke2_version }
+    CNI_TYPE: { get_input: cni_type }
+    ENABLE_CIS: { get_input: enable_cis }
+    CLUSTER_CIDR: { get_input: cluster_cidr }
+    SERVICE_CIDR: { get_input: service_cidr }
+    MAX_PODS: { get_input: max_pods }
+    INSTALL_INGRESS: { get_input: install_ingress }
+    INSTALL_SERVICELB: { get_input: install_servicelb }
+    INSTALL_LOCAL_PATH_PROVISIONER: { get_input: install_local_path_provisioner }
+    LOCAL_PATH_PROVISIONER_VERSION: { get_input: local_path_provisioner_version }
+    INSTALL_DNS_UTILITY: { get_input: install_dns_utility }
+    RKE2_DATA: { get_input: rke2_data }
+    KUBELET_DATA: { get_input: kubelet_data }
+    PVC_DATA: { get_input: pvc_data }
+    CONTROL_PLANE_TAINT: { get_input: control_plane_taint }
+    DEBUG: { get_input: debug }
+    # Velero
+    VELERO_VERSION: { get_input: velero_version }
+    VELERO_AWS_PLUGIN_VERSION: { get_input: velero_aws_plugin_version }
+    VELERO_S3_URL: { get_input: velero_s3_url }
+    VELERO_S3_ACCESS_KEY: { get_input: velero_s3_access_key }
+    VELERO_S3_SECRET_KEY: { get_input: velero_s3_secret_key }
+    VELERO_BUCKET: { get_input: velero_bucket }
+    VELERO_BACKUP_NAMESPACES: { get_input: velero_backup_namespaces }
+    VELERO_BACKUP_SCHEDULE: { get_input: velero_backup_schedule }
+    VELERO_BACKUP_TTL: { get_input: velero_backup_ttl }
+    VSC_NAME: { get_input: vsc_name }
+    VSC_DRIVER: { get_input: vsc_driver }
+    # Monitoring
+    MONITORING_HOST: { get_input: monitoring_host }
+    MONITORING_LOKI_PORT: { get_input: monitoring_loki_port }
+    MONITORING_PROMETHEUS_PORT: { get_input: monitoring_prometheus_port }
+    CLUSTER_NAME: { get_input: cluster_name }
+    HELM_VERSION: { get_input: helm_version }
+    KUBE_PROMETHEUS_STACK_VERSION: { get_input: kube_prometheus_stack_version }
+    FLUENT_BIT_CHART_VERSION: { get_input: fluent_bit_chart_version }
+    FLUENT_BIT_VERSION: { get_input: fluent_bit_version }
+    PROMETHEUS_RETENTION: { get_input: prometheus_retention }
+    PROMETHEUS_STORAGE_SIZE: { get_input: prometheus_storage_size }
+    PROMETHEUS_STORAGE_CLASS: { get_input: prometheus_storage_class }
+    MONITOR_EXCLUDE_NS: { get_input: monitor_exclude_ns }
+    MONITOR_PORT_NAMES: { get_input: monitor_port_names }
+    MONITOR_CONFIGS_DIR: { get_input: monitor_configs_dir }
+
+  command_fabric_env: &command_fabric_env
+    shell_env:
+      <<: *shell_env
+    host_string: { get_attribute: [vm_platform, capabilities, vm_name] }
+    user: { get_attribute: [vm_platform, capabilities, vm_user_name] }
+    key: { get_secret: { get_attribute: [vm_platform, capabilities, vm_ssh_private_key] } }
+    port: 22
+
+# Get target ID and VM info
+  get_target_id: &get_target_id
+    implementation: tech-ops/scripts/get_target_id.py
+    executor: central_deployment_agent
+    inputs:
+      service_tag: { get_attribute: [vm_platform, capabilities, service_tag] }
+  get_vm_info: &get_vm_info
+    implementation: fabric.fabric_plugin.tasks.run_script
+    inputs:
+      script_path: tech-ops/scripts/get_vm_info.sh
+      fabric_env:
+        host_string:
+          get_attribute: [vm_platform, capabilities, vm_name]
+        user:
+          get_attribute: [vm_platform, capabilities, vm_user_name]
+        key:
+          get_secret: { get_attribute: [vm_platform, capabilities, vm_ssh_private_key] }
+        port: 22
+      hide_output: { get_input: hide_log_output }
+      proxy_settings:
+        get_attribute: [ SELF, connection_proxy_settings ]
+
+node_templates:
+
+  vm_platform:
+    type: dell.nodes.SharedResource
+    properties:
+      resource_config:
+        deployment:
+          id: { get_input: vm_deployment_id }
+
+  vm_info:
+    type: dell.nodes.Root
+    interfaces:
+      dell.interfaces.lifecycle:
+        create:
+          <<: *get_target_id
+        start:
+          <<: *get_vm_info
+        preupdate:
+          <<: *get_target_id
+        update:
+          <<: *get_vm_info
+    relationships:
+       - type: dell.relationships.depends_on
+         target: vm_platform
+
+  env_precheck:
+    type: dell.nodes.Root
+    interfaces:
+      dell.interfaces.lifecycle:
+        create:
+          implementation: fabric.fabric_plugin.tasks.run_script
+          inputs:
+            <<: *env_precheck_inputs
+        update:
+          implementation: fabric.fabric_plugin.tasks.run_script
+          inputs:
+            <<: *env_precheck_inputs
+    relationships:
+       - type: dell.relationships.depends_on
+         target: vm_info
+
+  install_app:
+    type: dell.nodes.Root
+    interfaces:
+      dell.interfaces.lifecycle:
+        create:
+          executor: central_deployment_agent
+          implementation: fabric.fabric_plugin.tasks.run_commands
+          inputs:
+            hide_output: { get_input: hide_log_output }
+            proxy_settings: { get_attribute: [ vm_info, connection_proxy_settings ] }
+            commands: *run_install_cmds
+            fabric_env:
+              <<: *command_fabric_env
+        update:
+          executor: central_deployment_agent
+          implementation: fabric.fabric_plugin.tasks.run_commands
+          inputs:
+            hide_output: { get_input: hide_log_output }
+            proxy_settings: { get_attribute: [ vm_info, connection_proxy_settings ] }
+            commands: *run_install_cmds
+            fabric_env:
+              <<: *command_fabric_env
+        stop:
+          executor: central_deployment_agent
+          implementation: fabric.fabric_plugin.tasks.run_commands
+          inputs:
+            hide_output: { get_input: hide_log_output }
+            proxy_settings: { get_attribute: [ vm_info, connection_proxy_settings ] }
+            commands: *run_uninstall_cmds
+            fabric_env:
+              <<: *command_fabric_env
+    relationships:
+       - type: dell.relationships.depends_on
+         target: env_precheck
+
+  env_postcheck:
+    type: dell.nodes.Root
+    interfaces:
+      dell.interfaces.lifecycle:
+        create:
+          implementation: fabric.fabric_plugin.tasks.run_script
+          inputs:
+            <<: *env_postcheck_inputs
+        update:
+          implementation: fabric.fabric_plugin.tasks.run_script
+          inputs:
+            <<: *env_postcheck_inputs
+    relationships:
+       - type: dell.relationships.depends_on
+         target: install_app

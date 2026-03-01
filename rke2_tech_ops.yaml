@@ -1,0 +1,118 @@
+tosca_definitions_version: dell_1_1
+
+description: >
+  This blueprint deploys RKE2 Kubernetes on an existing edge-cloud-init deployment
+
+imports:
+  - dell/types/types.yaml
+  - tech-ops/definitions.yaml
+  - tech-ops/inputs.yaml
+  - tech-ops/outputs.yaml
+
+input_groups:
+  deployment_target:
+    display_label: Deployment Target
+    collapsible: false
+    index: 0
+    inputs:
+      - vm_deployment_id
+
+  rke2_config:
+    display_label: RKE2 Cluster Configuration
+    collapsible: true
+    index: 1
+    inputs:
+      - rke2_version
+      - cni_type
+      - enable_cis
+      - cluster_cidr
+      - service_cidr
+      - max_pods
+      - install_ingress
+      - install_servicelb
+      - install_local_path_provisioner
+      - local_path_provisioner_version
+      - install_dns_utility
+      - rke2_data
+      - kubelet_data
+      - pvc_data
+      - control_plane_taint
+      - tls_san
+
+  velero_config:
+    display_label: Velero Backup Configuration
+    collapsible: true
+    index: 2
+    inputs:
+      - velero_version
+      - velero_aws_plugin_version
+      - velero_s3_url
+      - velero_s3_access_key
+      - velero_s3_secret_key
+      - velero_bucket
+      - velero_backup_namespaces
+      - velero_backup_schedule
+      - velero_backup_ttl
+      - vsc_name
+      - vsc_driver
+
+  monitoring_config:
+    display_label: Monitoring Configuration
+    collapsible: true
+    index: 3
+    inputs:
+      - monitoring_host
+      - monitoring_loki_port
+      - monitoring_prometheus_port
+      - cluster_name
+      - kube_prometheus_stack_version
+      - fluent_bit_chart_version
+      - fluent_bit_version
+      - helm_version
+      - prometheus_retention
+      - prometheus_storage_size
+      - prometheus_storage_class
+      - monitor_exclude_ns
+      - monitor_port_names
+      - monitor_configs_dir
+
+  env_config:
+    display_label: Environment Configuration
+    collapsible: true
+    index: 4
+    inputs:
+      - run_arg
+      - join_mode
+      - join_server
+      - join_token
+      - script_url
+      - offline_mode
+      - offline_binary_secret
+      - registry_secret
+      - registry_url
+      - upload_package
+      - upload_binary_secret
+      - hide_log_output
+      - debug
+
+labels:
+  csys-obj-type:
+    values:
+      - environment
+  target_environment:
+    values:
+      - ned
+  vendor:
+    values:
+      - tme-tech-ops
+  solution:
+    values:
+      - rke2-tech-ops
+  version:
+    values:
+      - "1.0.0.0"
+
+blueprint_labels:
+  env:
+    values:
+      - NED

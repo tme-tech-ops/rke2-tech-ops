@@ -1,0 +1,901 @@
+inputs:
+
+# Deployment Target Inputs
+  vm_deployment_id:
+    type: deployment_id
+    hidden: false
+    allow_update: false
+    display_label: POC VM Deployment Instance
+    description: |
+      POC VM Deployment Instance
+    constraints:
+    - labels:
+      - csys-obj-type: environment
+      - solution: edge-cloud-init
+    display:
+      group: deployment_target
+      index: 1
+
+  ssh_user_private_key:
+    type: secret_key
+    hidden: true
+    allow_update: false
+    required: false
+    display_label: SSH Private Key Secret from the edge-cloud-init deployment
+    description: |
+      Name of the SSH private key secret in the secret store for the VM user
+    display:
+      group: deployment_target
+      index: 5
+
+# RKE2 Cluster Configuration Inputs
+
+  rke2_version:
+    type: string
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: RKE2 Version
+    description: |
+      RKE2 Kubernetes version to install
+    default: "v1.32.5+rke2r1"
+    display:
+      group: rke2_config
+      index: 1
+
+  cni_type:
+    type: string
+    hidden: false
+    required: true
+    allow_update: false
+    display_label: CNI Plugin
+    description: |
+      Container Network Interface plugin for pod networking
+    default: "canal"
+    constraints:
+      - valid_values:
+        - "calico"
+        - "canal"
+        - "cilium"
+        - "none"
+    display:
+      group: rke2_config
+      index: 5
+
+  enable_cis:
+    type: boolean
+    hidden: false
+    required: true
+    allow_update: false
+    display_label: Enable CIS Hardening
+    description: |
+      Enable Kubernetes CIS benchmark hardening profile
+    default: false
+    display:
+      group: rke2_config
+      index: 10
+
+  cluster_cidr:
+    type: string
+    hidden: false
+    required: true
+    allow_update: false
+    display_label: Cluster CIDR
+    description: |
+      Pod network CIDR range
+    default: "10.42.0.0/16"
+    display:
+      group: rke2_config
+      index: 15
+
+  service_cidr:
+    type: string
+    hidden: false
+    required: true
+    allow_update: false
+    display_label: Service CIDR
+    description: |
+      Service network CIDR range
+    default: "10.43.0.0/16"
+    display:
+      group: rke2_config
+      index: 20
+
+  max_pods:
+    type: integer
+    hidden: false
+    required: true
+    allow_update: false
+    display_label: Max Pods Per Node
+    description: |
+      Maximum number of pods per node
+    default: 110
+    display:
+      group: rke2_config
+      index: 25
+
+  install_ingress:
+    type: boolean
+    hidden: false
+    required: true
+    allow_update: false
+    display_label: Install NGINX Ingress
+    description: |
+      Install the default RKE2 NGINX ingress controller
+    default: true
+    display:
+      group: rke2_config
+      index: 30
+
+  install_servicelb:
+    type: boolean
+    hidden: false
+    required: true
+    allow_update: false
+    display_label: Install ServiceLB
+    description: |
+      Install Klipper service load balancer
+    default: true
+    display:
+      group: rke2_config
+      index: 35
+
+  install_local_path_provisioner:
+    type: boolean
+    hidden: false
+    required: true
+    allow_update: false
+    display_label: Install Local Path Provisioner
+    description: |
+      Install Rancher's local-path-provisioner storage class
+    default: true
+    display:
+      group: rke2_config
+      index: 40
+
+  local_path_provisioner_version:
+    type: string
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: Local Path Provisioner Version
+    description: |
+      Version of the local-path-provisioner to install
+    default: "v0.0.32"
+    display:
+      group: rke2_config
+      index: 45
+
+  install_dns_utility:
+    type: boolean
+    hidden: false
+    required: true
+    allow_update: false
+    display_label: Install DNS Utility
+    description: |
+      Install kubernetes.io DNS utility container
+    default: true
+    display:
+      group: rke2_config
+      index: 50
+
+  rke2_data:
+    type: string
+    hidden: false
+    required: true
+    allow_update: false
+    display_label: RKE2 Data Path
+    description: |
+      Path where etcd, containerd, and RKE2 data is stored.
+      Use 'default' for /var/lib/rancher/rke2.
+    default: "default"
+    display:
+      group: rke2_config
+      index: 55
+
+  kubelet_data:
+    type: string
+    hidden: false
+    required: true
+    allow_update: false
+    display_label: Kubelet Data Path
+    description: |
+      Path where kubelet data is stored.
+      Use 'default' for /var/lib/kubelet.
+    default: "default"
+    display:
+      group: rke2_config
+      index: 60
+
+  pvc_data:
+    type: string
+    hidden: false
+    required: true
+    allow_update: false
+    display_label: PVC Data Path
+    description: |
+      Path where storage class PVCs are stored.
+      Use 'default' for /opt/local-path-provisioner.
+    default: "default"
+    display:
+      group: rke2_config
+      index: 65
+
+  control_plane_taint:
+    type: boolean
+    hidden: false
+    required: true
+    allow_update: false
+    display_label: Taint Control Plane
+    description: |
+      Set to true to taint the control-plane node for multi-node clusters with workload separation
+    default: false
+    display:
+      group: rke2_config
+      index: 70
+
+  tls_san:
+    type: string
+    hidden: false
+    required: false
+    allow_update: false
+    display_label: TLS SAN
+    description: |
+      Additional TLS Subject Alternative Name (FQDN or IP) for the API server certificate.
+      Leave blank if not needed.
+    default: ""
+    display:
+      group: rke2_config
+      index: 75
+
+# Velero Backup Configuration Inputs
+
+  velero_version:
+    type: string
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: Velero Version
+    description: |
+      Velero backup tool version
+    default: "v1.17.1"
+    display:
+      group: velero_config
+      index: 1
+
+  velero_aws_plugin_version:
+    type: string
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: Velero AWS Plugin Version
+    description: |
+      Velero AWS S3-compatible plugin version
+    default: "v1.13.0"
+    display:
+      group: velero_config
+      index: 5
+
+  velero_s3_url:
+    type: string
+    hidden: false
+    required: false
+    allow_update: true
+    display_label: Velero S3 Endpoint URL
+    description: |
+      S3-compatible endpoint URL for Velero backups (e.g. https://s3.example.com:8333).
+      Required for 'install velero' task.
+    default: ""
+    display:
+      group: velero_config
+      index: 10
+
+  velero_s3_access_key:
+    type: string
+    hidden: false
+    required: false
+    allow_update: true
+    display_label: Velero S3 Access Key
+    description: |
+      S3 access key for Velero backup storage
+    default: ""
+    display:
+      group: velero_config
+      index: 15
+
+  velero_s3_secret_key:
+    type: string
+    hidden: false
+    required: false
+    allow_update: true
+    display_label: Velero S3 Secret Key
+    description: |
+      S3 secret key for Velero backup storage
+    default: ""
+    display:
+      group: velero_config
+      index: 20
+
+  velero_bucket:
+    type: string
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: Velero S3 Bucket
+    description: |
+      S3 bucket name for Velero backup storage
+    default: "velero"
+    display:
+      group: velero_config
+      index: 25
+
+  velero_backup_namespaces:
+    type: string
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: Velero Backup Namespaces
+    description: |
+      Comma-separated list of namespaces to back up
+    default: "default"
+    display:
+      group: velero_config
+      index: 30
+
+  velero_backup_schedule:
+    type: string
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: Velero Backup Schedule
+    description: |
+      Cron schedule for daily backups
+    default: "0 2 * * *"
+    display:
+      group: velero_config
+      index: 35
+
+  velero_backup_ttl:
+    type: string
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: Velero Backup TTL
+    description: |
+      Backup retention period
+    default: "720h"
+    display:
+      group: velero_config
+      index: 40
+
+  vsc_name:
+    type: string
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: VolumeSnapshotClass Name
+    description: |
+      VolumeSnapshotClass name for Longhorn CSI snapshots
+    default: "longhorn-snapshot-vsc"
+    display:
+      group: velero_config
+      index: 45
+
+  vsc_driver:
+    type: string
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: VolumeSnapshotClass Driver
+    description: |
+      CSI driver name for the VolumeSnapshotClass
+    default: "driver.longhorn.io"
+    display:
+      group: velero_config
+      index: 50
+
+# Monitoring Configuration Inputs
+
+  monitoring_host:
+    type: string
+    hidden: false
+    required: false
+    allow_update: true
+    display_label: Monitoring Host
+    description: |
+      IP/FQDN of external monitoring Docker host (Loki + Grafana + Prometheus).
+      Required for 'install monitoring' task.
+    default: ""
+    display:
+      group: monitoring_config
+      index: 1
+
+  monitoring_loki_port:
+    type: integer
+    hidden: false
+    required: true
+    allow_update: false
+    display_label: Loki Port
+    description: |
+      Loki HTTP port on the monitoring host
+    default: 3100
+    display:
+      group: monitoring_config
+      index: 5
+
+  monitoring_prometheus_port:
+    type: integer
+    hidden: false
+    required: true
+    allow_update: false
+    display_label: Prometheus Port
+    description: |
+      Prometheus remote-write receiver port on the monitoring host
+    default: 9090
+    display:
+      group: monitoring_config
+      index: 10
+
+  cluster_name:
+    type: string
+    hidden: false
+    required: false
+    allow_update: false
+    display_label: Cluster Name
+    description: |
+      Label applied to all monitoring metrics and logs for cluster identification
+    default: "edge-lab"
+    display:
+      group: monitoring_config
+      index: 15
+
+  kube_prometheus_stack_version:
+    type: string
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: Kube Prometheus Stack Version
+    description: |
+      Helm chart version for kube-prometheus-stack
+    default: "69.8.0"
+    display:
+      group: monitoring_config
+      index: 20
+
+  fluent_bit_chart_version:
+    type: string
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: Fluent Bit Chart Version
+    description: |
+      Helm chart version for Fluent Bit
+    default: "0.55.0"
+    display:
+      group: monitoring_config
+      index: 25
+
+  fluent_bit_version:
+    type: string
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: Fluent Bit Version
+    description: |
+      Fluent Bit application/image version
+    default: "4.2.2"
+    display:
+      group: monitoring_config
+      index: 30
+
+  helm_version:
+    type: string
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: Helm Version
+    description: |
+      Helm version to install if not already present
+    default: "3.12.0"
+    display:
+      group: monitoring_config
+      index: 35
+
+  prometheus_retention:
+    type: string
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: Prometheus Retention
+    description: |
+      In-cluster Prometheus data retention period
+    default: "48h"
+    display:
+      group: monitoring_config
+      index: 40
+
+  prometheus_storage_size:
+    type: string
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: Prometheus Storage Size
+    description: |
+      PVC size for in-cluster Prometheus
+    default: "50Gi"
+    display:
+      group: monitoring_config
+      index: 45
+
+  prometheus_storage_class:
+    type: string
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: Prometheus Storage Class
+    description: |
+      StorageClass for Prometheus and Alertmanager PVCs
+    default: "longhorn"
+    display:
+      group: monitoring_config
+      index: 50
+
+  monitor_exclude_ns:
+    type: string
+    hidden: false
+    required: false
+    allow_update: true
+    display_label: Monitor Exclude Namespaces
+    description: |
+      Space-separated list of namespaces to skip during ServiceMonitor auto-discovery
+    default: "kube-system kube-public kube-node-lease default monitoring"
+    display:
+      group: monitoring_config
+      index: 55
+
+  monitor_port_names:
+    type: string
+    hidden: false
+    required: false
+    allow_update: true
+    display_label: Monitor Port Names
+    description: |
+      Space-separated port names treated as Prometheus metrics endpoints
+    default: "manager metrics http-metrics prometheus monitoring prom"
+    display:
+      group: monitoring_config
+      index: 60
+
+  monitor_configs_dir:
+    type: string
+    hidden: false
+    required: false
+    allow_update: true
+    display_label: Monitor Configs Directory
+    description: |
+      Optional directory of additional ServiceMonitor YAML files to apply
+    default: ""
+    display:
+      group: monitoring_config
+      index: 65
+
+# Env Config Inputs
+
+  offline_mode:
+    type: boolean
+    hidden: false
+    allow_update: true
+    display_label: Airgapped Mode
+    description: |
+      Set to true to download and install from specified offline package
+    default: false
+    display:
+      group: env_config
+      index: 1
+
+  offline_binary_secret:
+    type: secret_key
+    hidden: false
+    only_with: offline_mode
+    allow_update: true
+    display_label: Offline Binary Configuration Secret
+    description: |
+      Secret containing url, username, access_token, and
+      version of the offline archive binary.
+    constraints:
+    - type: binary_configuration
+    display:
+      group: env_config
+      index: 5
+
+  registry_secret:
+    type: secret_key
+    hidden: false
+    required: false
+    allow_update: true
+    display_label: Registry Authentication Secret
+    description: |
+      Secret containing the username and password for a local container registry.
+      Required when using 'install push' or 'push' run tasks to push images to
+      a local registry, or when installing from a local registry in offline mode.
+    constraints:
+    - type: basic_auth_credentials
+    display:
+      group: env_config
+      index: 7
+
+  registry_url:
+    type: string
+    hidden: false
+    required: false
+    allow_update: true
+    display_label: Registry URL
+    description: |
+      URL of the local container registry (e.g. myregistry.lab:5000)
+    default: ""
+    display:
+      group: env_config
+      index: 8
+
+  run_arg:
+    type: string
+    hidden: false
+    exclusive_with: offline_mode
+    allow_update: true
+    display_label: Install Task
+    description: |
+      Select the operation to perform:
+        install            - Install RKE2 server (single node, untainted)
+        install velero      - Install Velero backup into existing RKE2 cluster
+        install monitoring  - Install kube-prometheus-stack + Fluent Bit
+        install push        - Install and push all images to a local registry (requires registry_secret)
+        uninstall           - Full RKE2 uninstall
+        save                - Create offline archive (rke2-save.tar.gz)
+        push                - Push images to local registry (requires registry_secret)
+        join                - Join existing cluster (requires join_mode, join_server, join_token)
+    default: "install"
+    constraints:
+      - valid_values:
+        - "install"
+        - "install velero"
+        - "install monitoring"
+        - "install push"
+        - "uninstall"
+        - "save"
+        - "push"
+        - "join"
+    display:
+      group: env_config
+      index: 10
+
+  join_mode:
+    type: string
+    hidden: false
+    required: false
+    allow_update: true
+    display_label: Join Mode
+    description: |
+      Join type when using the 'join' run task. Must be 'server' or 'agent'.
+    default: ""
+    constraints:
+      - valid_values:
+        - ""
+        - "server"
+        - "agent"
+    display:
+      group: env_config
+      index: 11
+
+  join_server:
+    type: string
+    hidden: false
+    required: false
+    allow_update: true
+    display_label: Join Server FQDN/IP
+    description: |
+      FQDN or IP of the RKE2 server to join. Required when run_arg is 'join'.
+    default: ""
+    display:
+      group: env_config
+      index: 12
+
+  join_token:
+    type: string
+    hidden: false
+    required: false
+    allow_update: true
+    display_label: Join Token
+    description: |
+      Cluster join token from the RKE2 server. Required when run_arg is 'join'.
+    default: ""
+    display:
+      group: env_config
+      index: 13
+
+  script_url:
+    type: string
+    hidden: false
+    exclusive_with: offline_mode
+    allow_update: true
+    display_label: Script URL
+    description: |
+      URL of the script to be executed
+    default: "https://github.com/Chubtoad5/rke2-installer/raw/refs/heads/main/rke2_installer.sh"
+    display:
+      group: env_config
+      index: 15
+
+  upload_package:
+    type: boolean
+    hidden: false
+    allow_update: true
+    display_label: Upload save package
+    description: |
+      Only for the 'save' install task. Uploads the offline archive to a file server after creation.
+    default: false
+    display:
+      group: env_config
+      index: 20
+
+  upload_binary_secret:
+    type: secret_key
+    hidden: false
+    only_with: upload_package
+    allow_update: true
+    display_label: Upload URL location
+    description: |
+      Binary configuration secret pointing to the upload location (i.e. https://myfilerserver.lab/upload_dir/).
+    constraints:
+    - type: binary_configuration
+    display:
+      group: env_config
+      index: 25
+
+  hide_log_output:
+    type: list
+    hidden: false
+    allow_update: true
+    display_label: Log Output to hide
+    description: |
+      stdout hides standard output, stderr hides standard error, both hides both
+    default: ["stdout"]
+    constraints:
+      - valid_values:
+        - "both"
+        - "stdout"
+        - "stderr"
+    display:
+      group: env_config
+      index: 30
+
+  debug:
+    type: integer
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: Debug Logging
+    description: |
+      Set to 0 or 1 to enable or disable debug logging
+    default: 1
+    display:
+      group: env_config
+      index: 35
+
+# Hidden Inputs
+  offline_binary_url:
+    type: string
+    hidden: true
+    allow_update: false
+    display_label: Offline Binary URL
+    description: |
+      URL of the OS Image that will be used to create
+      the Virtual Machine.
+    default:
+      get_secret:
+      - get_input: offline_binary_secret
+      - binary_image_url
+
+  offline_binary_access_user:
+    type: string
+    hidden: true
+    display_label: Offline Binary Username
+    description: |
+      User name of the Repository of the Image Binary that will be
+      used to create the Virtual Machine.
+    default:
+      get_secret:
+      - get_input: offline_binary_secret
+      - binary_image_access_user
+
+  offline_binary_access_token:
+    type: list
+    hidden: true
+    display_label: Offline Binary Access Token
+    description: |
+      Name of the secret storing the Token to the Repository of the
+      Image Binary that will be used to create the Virtual Machine.
+    default:
+    - get_input: offline_binary_secret
+    - binary_image_access_token
+
+  offline_binary_version:
+    type: string
+    hidden: true
+    display_label: Offline Binary Version
+    description: |
+      Ofline binary version that will be used to create
+      the Virtual Machine.
+    default:
+      get_secret:
+      - get_input: offline_binary_secret
+      - binary_image_version
+
+  upload_binary_url:
+    type: string
+    hidden: true
+    allow_update: false
+    display_label: Upload Binary URL
+    description: |
+      URL of the OS Image that will be used to create
+      the Virtual Machine.
+    default:
+      get_secret:
+      - get_input: upload_binary_secret
+      - binary_image_url
+
+  upload_binary_access_user:
+    type: string
+    hidden: true
+    display_label: Upload Binary Username
+    description: |
+      User name of the Repository of the Image Binary that will be
+      used to create the Virtual Machine.
+    default:
+      get_secret:
+      - get_input: upload_binary_secret
+      - binary_image_access_user
+
+  upload_binary_access_token:
+    type: list
+    hidden: true
+    display_label: Upload Binary Access Token
+    description: |
+      Name of the secret storing the Token to the Repository of the
+      Image Binary that will be used to create the Virtual Machine.
+    default:
+    - get_input: upload_binary_secret
+    - binary_image_access_token
+
+  upload_binary_version:
+    type: string
+    hidden: true
+    display_label: Upload Binary Version
+    description: |
+      Ofline binary version that will be used to create
+      the Virtual Machine.
+    default:
+      get_secret:
+      - get_input: upload_binary_secret
+      - binary_image_version
+
+  registry_access_user:
+    type: string
+    hidden: true
+    display_label: Registry Username
+    description: |
+      Username for the local container registry derived from registry_secret.
+    default:
+      get_secret:
+      - get_input: registry_secret
+      - username
+
+  registry_password:
+    type: string
+    hidden: true
+    display_label: Registry Password
+    description: |
+      Password for the local container registry derived from registry_secret.
+    default:
+      get_secret:
+      - get_input: registry_secret
+      - password
