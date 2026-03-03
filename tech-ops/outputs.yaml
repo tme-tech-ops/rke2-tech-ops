@@ -1,6 +1,6 @@
 capabilities:
 
-  rke2_running:
+  rke2_service_running:
     description: RKE2 service running status
     value: { get_attribute: [ env_postcheck, capabilities, rke2_running ] }
 

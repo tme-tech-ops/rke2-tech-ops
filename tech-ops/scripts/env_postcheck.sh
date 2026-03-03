@@ -23,7 +23,7 @@ if systemctl is-active --quiet rke2-server 2>/dev/null; then
     export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
     export PATH=$PATH:/var/lib/rancher/rke2/bin
     if command -v kubectl &>/dev/null; then
-        kubectl wait --for=condition=Ready nodes --all --timeout=30s &>/dev/null
+        kubectl wait --for=condition=Ready nodes --all --timeout=120s &>/dev/null
         if [[ $? != 0 ]]; then 
             RKE2_NODE_STATUS="NotReady"
             ctx logger info "RKE2 cluster status: NotReady"
