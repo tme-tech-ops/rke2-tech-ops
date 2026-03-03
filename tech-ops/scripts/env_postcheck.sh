@@ -23,12 +23,20 @@ if systemctl is-active --quiet rke2-server 2>/dev/null; then
     export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
     export PATH=$PATH:/var/lib/rancher/rke2/bin
     if command -v kubectl &>/dev/null; then
-        RKE2_NODE_STATUS=$(kubectl get nodes -o wide 2>/dev/null || echo "Unable to retrieve node status")
+        kubectl wait --for=condition=Ready nodes --all --timeout=30s &>/dev/null
+        if [[ $? != 0 ]]; then 
+            RKE2_NODE_STATUS="NotReady"
+            ctx logger info "RKE2 cluster status: NotReady"
+        else 
+            RKE2_NODE_STATUS="Ready"
+            ctx logger info "RKE2 cluster status: Ready"
+        fi
     fi
 
     # Get join token if available
     if [[ -f /var/lib/rancher/rke2/server/node-token ]]; then
-        RKE2_JOIN_TOKEN=$(cat /var/lib/rancher/rke2/server/node-token)
+        RKE2_JOIN_TOKEN=$(sudo cat /var/lib/rancher/rke2/server/node-token)
+        ctx logger info "Captured join token."
     fi
 
     RKE2_KUBECONFIG="/etc/rancher/rke2/rke2.yaml"
