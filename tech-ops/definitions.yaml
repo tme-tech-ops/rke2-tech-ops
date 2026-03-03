@@ -27,13 +27,14 @@ dsl_definitions:
         JOIN_SERVER: { get_input: join_server }
         JOIN_TOKEN: { get_input: join_token }
     fabric_env:
-      host_string: { get_attribute: [vm_platform, capabilities, vm_name] }
-      user: { get_attribute: [vm_platform, capabilities, vm_user_name] }
-      key: { get_secret: { get_attribute: [vm_platform, capabilities, vm_ssh_private_key] } }
+      host_string: { get_environment_capability: vm_name_id }
+      user: { get_environment_capability: vm_user_name }
+      key: { get_secret: { get_environment_capability: vm_ssh_private_key } }
       port: 22
     hide_output: { get_input: hide_log_output }
     proxy_settings:
-      get_attribute: [ vm_info, connection_proxy_settings ]
+      target_ip: { get_environment_capability: vm_name_id }
+      service_tag: { get_environment_capability: service_tag }
 
   env_postcheck_inputs: &env_postcheck_inputs
     script_path: tech-ops/scripts/env_postcheck.sh
@@ -45,13 +46,14 @@ dsl_definitions:
         UPLOAD_OFFLINE_PACKAGE_USER: { get_input: upload_binary_access_user }
         UPLOAD_OFFLINE_PACKAGE_PASSWORD: { get_secret: { get_input: upload_binary_access_token } }
     fabric_env:
-      host_string: { get_attribute: [vm_platform, capabilities, vm_name] }
-      user: { get_attribute: [vm_platform, capabilities, vm_user_name] }
-      key: { get_secret: { get_attribute: [vm_platform, capabilities, vm_ssh_private_key] } }
+      host_string: { get_environment_capability: vm_name_id }
+      user: { get_environment_capability: vm_user_name }
+      key: { get_secret: { get_environment_capability: vm_ssh_private_key } }
       port: 22
     hide_output: { get_input: hide_log_output }
     proxy_settings:
-      get_attribute: [ vm_info, connection_proxy_settings ]
+      target_ip: { get_environment_capability: vm_name_id }
+      service_tag: { get_environment_capability: service_tag }
 
 # App deploy
   run_install_cmds: &run_install_cmds
@@ -107,57 +109,44 @@ dsl_definitions:
   command_fabric_env: &command_fabric_env
     shell_env:
       <<: *shell_env
-    host_string: { get_attribute: [vm_platform, capabilities, vm_name] }
-    user: { get_attribute: [vm_platform, capabilities, vm_user_name] }
-    key: { get_secret: { get_attribute: [vm_platform, capabilities, vm_ssh_private_key] } }
+    host_string: { get_environment_capability: vm_name_id }
+    user: { get_environment_capability: vm_user_name }
+    key: { get_secret: { get_environment_capability: vm_ssh_private_key } }
     port: 22
 
-# Get target ID and VM info
-  get_target_id: &get_target_id
-    implementation: tech-ops/scripts/get_target_id.py
-    executor: central_deployment_agent
-    inputs:
-      service_tag: { get_attribute: [vm_platform, capabilities, service_tag] }
+# Get VM info
   get_vm_info: &get_vm_info
     implementation: fabric.fabric_plugin.tasks.run_script
     inputs:
       script_path: tech-ops/scripts/get_vm_info.sh
       fabric_env:
-        host_string:
-          get_attribute: [vm_platform, capabilities, vm_name]
-        user:
-          get_attribute: [vm_platform, capabilities, vm_user_name]
-        key:
-          get_secret: { get_attribute: [vm_platform, capabilities, vm_ssh_private_key] }
+        host_string: { get_environment_capability: vm_name_id }
+        user: { get_environment_capability: vm_user_name } 
+        key: { get_secret: { get_environment_capability: vm_ssh_private_key } }
         port: 22
       hide_output: { get_input: hide_log_output }
       proxy_settings:
-        get_attribute: [ SELF, connection_proxy_settings ]
+        target_ip: { get_environment_capability: vm_name_id }
+        service_tag: { get_environment_capability: service_tag }
 
 node_templates:
 
-  vm_platform:
-    type: dell.nodes.SharedResource
-    properties:
-      resource_config:
-        deployment:
-          id: { get_input: vm_deployment_id }
+  # KEEP FOR FUTURE USE
+  # vm_platform:
+  #   type: dell.nodes.SharedResource
+  #   properties:
+  #     resource_config:
+  #       deployment:
+  #         id: { get_input: vm_deployment_id }
 
   vm_info:
     type: dell.nodes.Root
     interfaces:
       dell.interfaces.lifecycle:
-        create:
-          <<: *get_target_id
         start:
           <<: *get_vm_info
-        preupdate:
-          <<: *get_target_id
         update:
           <<: *get_vm_info
-    relationships:
-       - type: dell.relationships.depends_on
-         target: vm_platform
 
   env_precheck:
     type: dell.nodes.Root
@@ -184,7 +173,9 @@ node_templates:
           implementation: fabric.fabric_plugin.tasks.run_commands
           inputs:
             hide_output: { get_input: hide_log_output }
-            proxy_settings: { get_attribute: [ vm_info, connection_proxy_settings ] }
+            proxy_settings:
+              target_ip: { get_environment_capability: vm_name_id }
+              service_tag: { get_environment_capability: service_tag }
             commands: *run_install_cmds
             fabric_env:
               <<: *command_fabric_env
@@ -193,7 +184,9 @@ node_templates:
           implementation: fabric.fabric_plugin.tasks.run_commands
           inputs:
             hide_output: { get_input: hide_log_output }
-            proxy_settings: { get_attribute: [ vm_info, connection_proxy_settings ] }
+            proxy_settings:
+              target_ip: { get_environment_capability: vm_name_id }
+              service_tag: { get_environment_capability: service_tag }
             commands: *run_install_cmds
             fabric_env:
               <<: *command_fabric_env
@@ -202,7 +195,9 @@ node_templates:
           implementation: fabric.fabric_plugin.tasks.run_commands
           inputs:
             hide_output: { get_input: hide_log_output }
-            proxy_settings: { get_attribute: [ vm_info, connection_proxy_settings ] }
+            proxy_settings:
+              target_ip: { get_environment_capability: vm_name_id }
+              service_tag: { get_environment_capability: service_tag }
             commands: *run_uninstall_cmds
             fabric_env:
               <<: *command_fabric_env

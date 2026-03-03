@@ -10,12 +10,6 @@ imports:
   - tech-ops/outputs.yaml
 
 input_groups:
-  deployment_target:
-    display_label: Deployment Target
-    collapsible: false
-    index: 0
-    inputs:
-      - vm_deployment_id
 
   rke2_config:
     display_label: RKE2 Cluster Configuration
