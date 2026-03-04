@@ -49,6 +49,7 @@ input_groups:
       - velero_backup_ttl
       - vsc_name
       - vsc_driver
+      - push_save_velero
 
   monitoring_config:
     display_label: Monitoring Configuration
@@ -69,6 +70,7 @@ input_groups:
       - monitor_exclude_ns
       - monitor_port_names
       - monitor_configs_dir
+      - push_save_monitoring
 
   env_config:
     display_label: Environment Configuration

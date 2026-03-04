@@ -36,22 +36,24 @@ VELERO_BACKUP_TTL=${VELERO_BACKUP_TTL:-"720h"}                       # Backup re
 VELERO_BACKUP_SCHEDULE=${VELERO_BACKUP_SCHEDULE:-"0 2 * * *"}        # Cron schedule for daily backups at 2 AM
 VSC_NAME=${VSC_NAME:-"longhorn-snapshot-vsc"}                        # VolumeSnapshotClass name for Longhorn CSI snapshots
 VSC_DRIVER=${VSC_DRIVER:-"driver.longhorn.io"}                       # CSI driver name for the VolumeSnapshotClass
+PUSH_SAVE_VELERO=${PUSH_SAVE_VELERO:-"true"}                         # Allow saving and pushing velero images to private registry
 
 # Monitoring Configuration
 MONITORING_HOST=${MONITORING_HOST:-""}                               # IP/FQDN of external monitoring Docker host (Loki + Grafana + Prometheus)
 MONITORING_LOKI_PORT=${MONITORING_LOKI_PORT:-"3100"}                 # Loki HTTP port on the monitoring host
 MONITORING_PROMETHEUS_PORT=${MONITORING_PROMETHEUS_PORT:-"9090"}     # Prometheus remote-write receiver port on the monitoring host
-CLUSTER_NAME=${CLUSTER_NAME:-"edge-lab"}                           # Cluster label applied to all metrics and logs
-HELM_VERSION=${HELM_VERSION:-"3.12.0"}                              # Helm version to download if not already installed
+CLUSTER_NAME=${CLUSTER_NAME:-"edge-lab"}                             # Cluster label applied to all metrics and logs
+HELM_VERSION=${HELM_VERSION:-"3.12.0"}                               # Helm version to download if not already installed
 KUBE_PROMETHEUS_STACK_VERSION=${KUBE_PROMETHEUS_STACK_VERSION:-"69.8.0"}  # kube-prometheus-stack Helm chart version
 FLUENT_BIT_CHART_VERSION=${FLUENT_BIT_CHART_VERSION:-"0.55.0"}       # Fluent Bit Helm chart version (fluent/fluent-bit, uses 0.x.x versioning)
-FLUENT_BIT_VERSION=${FLUENT_BIT_VERSION:-"4.2.2"}                   # Fluent Bit application/image version (appVersion in the chart above)
+FLUENT_BIT_VERSION=${FLUENT_BIT_VERSION:-"4.2.2"}                    # Fluent Bit application/image version (appVersion in the chart above)
 PROMETHEUS_RETENTION=${PROMETHEUS_RETENTION:-"48h"}                  # In-cluster Prometheus retention (short; long-term lives on external host)
 PROMETHEUS_STORAGE_SIZE=${PROMETHEUS_STORAGE_SIZE:-"50Gi"}           # PVC size for in-cluster Prometheus
 PROMETHEUS_STORAGE_CLASS=${PROMETHEUS_STORAGE_CLASS:-"longhorn"}     # StorageClass for Prometheus and Alertmanager PVCs
 MONITOR_EXCLUDE_NS=${MONITOR_EXCLUDE_NS:-"kube-system kube-public kube-node-lease default monitoring"}  # Namespaces to skip during ServiceMonitor auto-discovery
-MONITOR_PORT_NAMES=${MONITOR_PORT_NAMES:-"manager metrics http-metrics prometheus monitoring prom"}              # Port names treated as Prometheus metrics endpoints
-MONITOR_CONFIGS_DIR=${MONITOR_CONFIGS_DIR:-""}                                                          # Optional dir of additional ServiceMonitor YAML files to apply
+MONITOR_PORT_NAMES=${MONITOR_PORT_NAMES:-"manager metrics http-metrics prometheus monitoring prom"}     # Port names treated as Prometheus metrics endpoints
+MONITOR_CONFIGS_DIR=${MONITOR_CONFIGS_DIR:-""}                       # Optional dir of additional ServiceMonitor YAML files to apply
+PUSH_SAVE_MONITORING=${PUSH_SAVE_MONITORING:-"true"}                 # Allow saving and pushing monitoring images to private registry
 
 # --- INTERNAL VARIABLES - DO NOT EDIT --- #
 user_name=${SUDO_USER:-}
@@ -103,13 +105,13 @@ Commands:
     [monitoring]     Installs kube-prometheus-stack, Fluent Bit, and ServiceMonitors into an existing RKE2 cluster.
                      Requires MONITORING_HOST to be set to the IP/FQDN of the external monitoring Docker host.
   [uninstall]      : Uninstalls rke2 from the host.
-  [save]           : Prepares an offline tar package with all rke2 and velero install files and dependencies.
+  [save]           : Prepares an offline tar package with all rke2 install files and dependencies. Velero and monitoring are included based on PUSH_SAVE_* vars.
   [push]           : Pushes rke2 images to the specified registry. If an offline tar package is not found, it will first pull from the internet.
   [join]           : Joins the host to an existing cluster as a [server] or [agent]. [join-token-string] must be specified.
 
 Options:
   [agent|server <server-fqdn/ip> <join-token-string>]  : Only use with [join]
-  [-registry <registry:port> <username> <password>]    : Only use with [install], [install velero], [join], [push]
+  [-registry <registry:port> <username> <password>]    : Only use with [install], [join], [push]
   [-tls-san <server-fqdn-ip>]                          : Only use with [install], [join server]
 
 Examples:
@@ -127,9 +129,6 @@ Examples:
 
   Install Velero into an existing RKE2 cluster (requires VELERO_S3_* vars to be configured):
   sudo ./$SCRIPT_NAME install velero
-
-  Install Velero and push its images to a registry first (for air-gapped clusters with a mirror registry):
-  sudo ./$SCRIPT_NAME install velero push -registry my.registry.com:443 myusername mypassword
 
   Push images to a private registry from an offline tar package if it exists, or pull from the internet, but do not install rke2:
   sudo ./$SCRIPT_NAME push -registry my.registry.com:443 myusername mypassword
@@ -338,7 +337,7 @@ kubelet-arg:
   - "max-pods=$MAX_PODS"
   - "resolv-conf=$resolv_conf_file"
 EOF
-    if [ $ENABLE_CIS == true ]; then
+    if [[ ${ENABLE_CIS,,} == "true" ]]; then
         cat >> /etc/rancher/rke2/config.yaml <<EOF
 profile: "cis"
 EOF
@@ -388,24 +387,24 @@ EOF
 data-dir: "$RKE2_DATA"
 EOF
     fi
-    if [[ $CONTROL_PLANE_TAINT == "true" ]]; then
+    if [[ ${CONTROL_PLANE_TAINT,,} == "true" ]]; then
         cat >> /etc/rancher/rke2/config.yaml <<EOF
 node-taint:
   - "node-role.kubernetes.io/control-plane:NoSchedule"
 EOF
     fi
-    if [ $INSTALL_INGRESS == false ]; then
+    if [[ ${INSTALL_INGRESS,,} == "false" ]]; then
         cat >> /etc/rancher/rke2/config.yaml <<EOF
 disable:
   - rke2-ingress-nginx
 EOF
     fi
-    if [[ $INSTALL_SERVICELB == true ]]; then
+    if [[ ${INSTALL_SERVICELB,,} == "true" ]]; then
         cat >> /etc/rancher/rke2/config.yaml <<EOF
 enable-servicelb: $INSTALL_SERVICELB
 EOF
     fi
-    if [ $ENABLE_CIS == true ]; then
+    if [[ ${ENABLE_CIS,,} == "true" ]]; then
         cat >> /etc/rancher/rke2/config.yaml <<EOF
 profile: "cis"
 EOF
@@ -460,19 +459,19 @@ EOF
 data-dir: "$RKE2_DATA"
 EOF
     fi
-    if [[ $CONTROL_PLANE_TAINT == "true" ]]; then
+    if [[ ${CONTROL_PLANE_TAINT,,} == "true" ]]; then
         cat >> /etc/rancher/rke2/config.yaml <<EOF
 node-taint:
   - "node-role.kubernetes.io/control-plane:NoSchedule"
 EOF
     fi
-    if [ $INSTALL_INGRESS == false ]; then
+    if [[ ${INSTALL_INGRESS,,} == "false" ]]; then
         cat >> /etc/rancher/rke2/config.yaml <<EOF
 disable:
   - rke2-ingress-nginx
 EOF
     fi
-    if [[ $INSTALL_SERVICELB == true ]]; then
+    if [[ ${INSTALL_SERVICELB,,} == "true" ]]; then
         cat >> /etc/rancher/rke2/config.yaml <<EOF
 enable-servicelb: $INSTALL_SERVICELB
 EOF
@@ -483,7 +482,7 @@ tls-san:
   - "$TLS_SAN"
 EOF
     fi
-    if [ $ENABLE_CIS == true ]; then
+    if [[ ${ENABLE_CIS,,} == "true" ]]; then
         cat >> /etc/rancher/rke2/config.yaml <<EOF
 profile: "cis"
 EOF
@@ -554,7 +553,7 @@ net.bridge.bridge-nf-call-ip6tables = 1
 net.bridge.bridge-nf-call-iptables = 1
 net.ipv4.ip_forward = 1
 EOF
-    if [[ $ENABLE_CIS == true ]]; then
+    if [[ ${ENABLE_CIS,,} == true ]]; then
         echo "  Enabling CIS host parameters"
         cp -f /usr/local/share/rke2/rke2-cis-sysctl.conf /etc/sysctl.d/60-rke2-cis.conf
         useradd -r -c "etcd user" -s /sbin/nologin -M etcd -U
@@ -651,13 +650,13 @@ EOF
 }
 
 apply_utilities () {
-    if [ $ENABLE_CIS == true ]; then
+    if [[ ${ENABLE_CIS,,} == "true" ]]; then
         for namespace in $(kubectl get namespaces -A -o=jsonpath="{.items[*]['metadata.name']}"); do
             echo "  Patching ${namespace} namespace for CIS compliance"
             kubectl patch serviceaccount default -n ${namespace} -p "$(cat $WORKING_DIR/rke2-utilities/account_update.yaml)"
         done
     fi
-    if [[ $INSTALL_LOCAL_PATH_PROVISIONER == "true" ]]; then
+    if [[ ${INSTALL_LOCAL_PATH_PROVISIONER,,} == "true" ]]; then
         echo "  Installing local-path-provisioner"
         # need to add check for registry and update yaml path
         if [[ $AIR_GAPPED_MODE -eq 0 ]]; then
@@ -670,7 +669,7 @@ apply_utilities () {
         check_namespace_pods_ready local-path-storage
         kubectl patch storageclass local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
     fi
-    if [[ $INSTALL_DNS_UTILITY == "true" ]]; then
+    if [[ ${INSTALL_DNS_UTILITY,,} == "true" ]]; then
         echo "  Installing dnsutils"
         # need to add check for registry and update yaml path
         if [[ $AIR_GAPPED_MODE -eq 1 ]]; then
@@ -687,25 +686,6 @@ apply_utilities () {
 run_install_velero () {
   export KUBECONFIG=/root/.kube/config
   export PATH=$PATH:$RKE2_DATA/bin
-
-  # Push velero images to registry if push mode is active
-  if [[ $PUSH_MODE == "1" ]]; then
-    echo "  Checking for RKE2 registries.yaml..."
-    if [[ ! -f /etc/rancher/rke2/registries.yaml ]]; then
-      echo "Error: /etc/rancher/rke2/registries.yaml not found."
-      echo "  RKE2 must be installed with '-registry' to configure the docker.io mirror."
-      echo "  Run: ./rke2_installer.sh install velero push -registry <registry:port> <username> <password>"
-      exit 1
-    fi
-    echo "  Pushing Velero images to registry ${REGISTRY_INFO}..."
-    image_pull_push_check
-    cd $WORKING_DIR/velero
-    echo "velero/velero:${VELERO_VERSION}" > velero-images.txt
-    echo "velero/velero-plugin-for-aws:${VELERO_AWS_PLUGIN_VERSION}" >> velero-images.txt
-    $WORKING_DIR/rke2-utilities/image_pull_push.sh -f $WORKING_DIR/velero/velero-images.txt push $REGISTRY_INFO $REG_USER $REG_PASS
-    cd $base_dir
-    echo "  Velero images pushed to registry."
-  fi
 
   # Install Velero CLI binary
   echo "  Installing Velero CLI ${VELERO_VERSION}..."
@@ -1168,7 +1148,7 @@ uninstall_rke2() {
             rm -rf -- "$KUBELET_DATA"
         fi
     fi
-    if [[ -n "$PVC_DATA" && "$PVC_DATA" != "default" && "$INSTALL_LOCAL_PATH_PROVISIONER" == "true" ]]; then
+    if [[ -n "$PVC_DATA" && "$PVC_DATA" != "default" && "${INSTALL_LOCAL_PATH_PROVISIONER,,}" == "true" ]]; then
         if [[ "$PVC_DATA" != /* || "$PVC_DATA" == "/" ]]; then
             echo "Refusing removal of dir PVC_DATA=$PVC_DATA"
         else
@@ -1186,8 +1166,12 @@ uninstall_rke2() {
 run_save () {
     echo "--- Running save workflow"
     download_rke2_binaries
-    download_velero
-    download_monitoring_charts
+    if [[ ${PUSH_SAVE_VELERO,,} == "true" ]]; then
+        download_velero
+    fi
+    if [[ ${PUSH_SAVE_MONITORING,,} == "true" ]]; then
+        download_monitoring_charts
+    fi
     download_rke2_utilities
     create_save_archive
     echo "--- Finished save workflow"
@@ -1218,7 +1202,7 @@ download_rke2_binaries () {
 
 download_rke2_utilities () {
     # check if local_path_provisioner should be downloaded
-    if [[ $INSTALL_LOCAL_PATH_PROVISIONER == "true" ]]; then
+    if [[ ${INSTALL_LOCAL_PATH_PROVISIONER,,} == "true" ]]; then
         echo "  Downloading local-path-provisioner manifest..."
         curl -sfL https://raw.githubusercontent.com/rancher/local-path-provisioner/$LOCAL_PATH_PROVISIONER_VERSION/deploy/local-path-storage.yaml -o $WORKING_DIR/rke2-utilities/local-path-storage.yaml
         cat $WORKING_DIR/rke2-utilities/local-path-storage.yaml |grep image: |cut -d: -f2-3 | awk '{sub(/^ /, ""); print}' >> $WORKING_DIR/rke2-utilities/images/utility-images.txt
@@ -1322,8 +1306,20 @@ download_monitoring_charts () {
 
 create_save_archive () {
     # saves downloaded files into rke2-save.tar.gz
+    cat > $base_dir/rke2-save-version.txt <<EOF
+# SeaweedFS Installer Save Archive
+# Created: $(date)
+#
+# RKE2 Version: $RKE2_VERSION
+# Local Path Provisioner: $LOCAL_PATH_PROVISIONER_VERSION
+# Velero Version: $VELERO_VERSION
+# Velero AWS Plugin Version: $VELERO_AWS_PLUGIN_VERSION
+# Prometheus Stack Version: $KUBE_PROMETHEUS_STACK_VERSION
+# Fluent Bit Chart Version: $FLUENT_BIT_CHART_VERSION
+# Fluent Bit Version: $FLUENT_BIT_VERSION
+EOF
     echo "  Creating rke2 archive..."
-    tar -czf rke2-save.tar.gz rke2-install rke2_installer.sh
+    tar -czf rke2-save.tar.gz rke2-install rke2_installer.sh rke2-save-version.txt
     echo "  Air-gapped archive 'rke2-save.tar.gz' created."
 }
 
@@ -1345,15 +1341,21 @@ push_utility_images () {
         local container_images_tar=$(basename $WORKING_DIR/rke2-utilities/container_images*.tar.gz)
         $WORKING_DIR/rke2-utilities/image_pull_push.sh -f $WORKING_DIR/rke2-utilities/$container_images_tar push $REGISTRY_INFO $REG_USER $REG_PASS
     elif [[ $AIR_GAPPED_MODE -eq 0 ]]; then
-        if [[ $INSTALL_LOCAL_PATH_PROVISIONER == "true" ]]; then
+        if [[ ${INSTALL_LOCAL_PATH_PROVISIONER,,} == "true" ]]; then
             curl -sfL https://raw.githubusercontent.com/rancher/local-path-provisioner/$LOCAL_PATH_PROVISIONER_VERSION/deploy/local-path-storage.yaml -o $WORKING_DIR/rke2-utilities/local-path-storage.yaml
             cat $WORKING_DIR/rke2-utilities/local-path-storage.yaml |grep image: |cut -d: -f2-3 | awk '{sub(/^ /, ""); print}' >> $WORKING_DIR/rke2-utilities/images/utility-images.txt
         fi
-        if [[ $INSTALL_DNS_UTILITY == "true" ]]; then
+        if [[ ${INSTALL_DNS_UTILITY,,} == "true" ]]; then
             curl -sfL https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/admin/dns/dnsutils.yaml -o $WORKING_DIR/rke2-utilities/dnsutils.yaml
             cat $WORKING_DIR/rke2-utilities/dnsutils.yaml |grep image: |cut -d: -f2-3 | awk '{sub(/^ /, ""); print}' >> $WORKING_DIR/rke2-utilities/images/utility-images.txt
         fi
-        extract_monitoring_images
+        if [[ ${PUSH_SAVE_VELERO,,} == "true" ]]; then
+            echo "velero/velero:${VELERO_VERSION}" >> $WORKING_DIR/rke2-utilities/images/utility-images.txt
+            echo "velero/velero-plugin-for-aws:${VELERO_AWS_PLUGIN_VERSION}" >> $WORKING_DIR/rke2-utilities/images/utility-images.txt
+        fi
+        if [[ ${PUSH_SAVE_MONITORING,,} == "true" ]]; then
+            download_monitoring_charts
+        fi
         image_pull_push_check
         echo "--- Printing utility-images.txt"
         cat $WORKING_DIR/rke2-utilities/images/utility-images.txt
@@ -1830,7 +1832,7 @@ if [[ $CNI_TYPE == "none" ]]; then
     CNI_NONE="true"
 fi
 # Verify AIR_GAPPED_MODE based on rke-save.tar.gz file presence
-[[ ! -f $base_dir/rke2-save.tar.gz ]] || AIR_GAPPED_MODE=1
+[[ ! -f $base_dir/rke2-save-version.txt ]] || AIR_GAPPED_MODE=1
 
 os_check
 display_args
@@ -1841,7 +1843,7 @@ create_working_dir
 if [[ $SAVE_MODE -eq 1 ]]; then
     run_debug run_save
 fi
-if [[ $PUSH_MODE -eq 1 && $INSTALL_TYPE != "velero" ]]; then
+if [[ $PUSH_MODE -eq 1 ]]; then
     run_debug run_push
 fi
 if [[ ($INSTALL_MODE -eq 1 && $INSTALL_TYPE == "rke2") || ($JOIN_MODE -eq 1 && $JOIN_TYPE == "agent") || ($JOIN_MODE -eq 1 && $JOIN_TYPE == "server") ]]; then

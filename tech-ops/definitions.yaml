@@ -90,6 +90,7 @@ dsl_definitions:
     VELERO_BACKUP_TTL: { get_input: velero_backup_ttl }
     VSC_NAME: { get_input: vsc_name }
     VSC_DRIVER: { get_input: vsc_driver }
+    PUSH_SAVE_VELERO: { get_input: push_save_velero }
     # Monitoring
     MONITORING_HOST: { get_input: monitoring_host }
     MONITORING_LOKI_PORT: { get_input: monitoring_loki_port }
@@ -105,6 +106,7 @@ dsl_definitions:
     MONITOR_EXCLUDE_NS: { concat: [ '"', { get_input: monitor_exclude_ns }, '"' ] }
     MONITOR_PORT_NAMES: { concat: [ '"', { get_input: monitor_port_names }, '"' ] }
     MONITOR_CONFIGS_DIR: { get_input: monitor_configs_dir }
+    PUSH_SAVE_MONITORING: { get_input: push_save_monitoring }
 
   command_fabric_env: &command_fabric_env
     shell_env:

@@ -391,6 +391,19 @@ inputs:
       group: velero_config
       index: 50
 
+  push_save_velero:
+    type: boolean
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: Push/Save Velero Images
+    description: |
+      Allow saving and pushing velero images to private registry during push operations
+    default: true
+    display:
+      group: velero_config
+      index: 55
+
 # Monitoring Configuration Inputs
 
   monitoring_host:
@@ -575,6 +588,19 @@ inputs:
     display:
       group: monitoring_config
       index: 65
+
+  push_save_monitoring:
+    type: boolean
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: Push/Save Monitoring Images
+    description: |
+      Allow saving and pushing monitoring images to private registry during push operations
+    default: true
+    display:
+      group: monitoring_config
+      index: 70
 
 # Env Config Inputs
 
