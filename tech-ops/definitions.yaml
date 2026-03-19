@@ -33,8 +33,9 @@ dsl_definitions:
       port: 22
     hide_output: { get_input: hide_log_output }
     proxy_settings:
+      auto_resolve: false
+      target_id: { get_environment_capability: proxy_target_id }
       target_ip: { get_environment_capability: vm_name_id }
-      service_tag: { get_environment_capability: service_tag }
 
   env_postcheck_inputs: &env_postcheck_inputs
     script_path: tech-ops/scripts/env_postcheck.sh
@@ -52,8 +53,9 @@ dsl_definitions:
       port: 22
     hide_output: { get_input: hide_log_output }
     proxy_settings:
+      auto_resolve: false
+      target_id: { get_environment_capability: proxy_target_id }
       target_ip: { get_environment_capability: vm_name_id }
-      service_tag: { get_environment_capability: service_tag }
 
 # App deploy
   run_install_cmds: &run_install_cmds
@@ -123,13 +125,14 @@ dsl_definitions:
       script_path: tech-ops/scripts/get_vm_info.sh
       fabric_env:
         host_string: { get_environment_capability: vm_name_id }
-        user: { get_environment_capability: vm_user_name } 
+        user: { get_environment_capability: vm_user_name }
         key: { get_secret: { get_environment_capability: vm_ssh_private_key } }
         port: 22
       hide_output: { get_input: hide_log_output }
       proxy_settings:
+        auto_resolve: false
+        target_id: { get_environment_capability: proxy_target_id }
         target_ip: { get_environment_capability: vm_name_id }
-        service_tag: { get_environment_capability: service_tag }
 
 node_templates:
 
@@ -176,8 +179,9 @@ node_templates:
           inputs:
             hide_output: { get_input: hide_log_output }
             proxy_settings:
+              auto_resolve: false
+              target_id: { get_environment_capability: proxy_target_id }
               target_ip: { get_environment_capability: vm_name_id }
-              service_tag: { get_environment_capability: service_tag }
             commands: *run_install_cmds
             fabric_env:
               <<: *command_fabric_env
@@ -187,8 +191,9 @@ node_templates:
           inputs:
             hide_output: { get_input: hide_log_output }
             proxy_settings:
+              auto_resolve: false
+              target_id: { get_environment_capability: proxy_target_id }
               target_ip: { get_environment_capability: vm_name_id }
-              service_tag: { get_environment_capability: service_tag }
             commands: *run_install_cmds
             fabric_env:
               <<: *command_fabric_env
@@ -198,8 +203,9 @@ node_templates:
           inputs:
             hide_output: { get_input: hide_log_output }
             proxy_settings:
+              auto_resolve: false
+              target_id: { get_environment_capability: proxy_target_id }
               target_ip: { get_environment_capability: vm_name_id }
-              service_tag: { get_environment_capability: service_tag }
             commands: *run_uninstall_cmds
             fabric_env:
               <<: *command_fabric_env
