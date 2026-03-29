@@ -35,7 +35,7 @@ if systemctl is-active --quiet rke2-server 2>/dev/null; then
 
     # Get join token if available
     if [[ -f /var/lib/rancher/rke2/server/node-token ]]; then
-        RKE2_JOIN_TOKEN=$(sudo cat /var/lib/rancher/rke2/server/node-token)
+        RKE2_JOIN_TOKEN=$(cat /var/lib/rancher/rke2/server/node-token)
         ctx logger info "Captured join token."
     fi
 

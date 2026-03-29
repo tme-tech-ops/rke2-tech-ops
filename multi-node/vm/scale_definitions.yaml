@@ -48,6 +48,7 @@ dsl_definitions:
 
   cp_env_postcheck_inputs: &cp_env_postcheck_inputs
     script_path: multi-node/vm/scripts/cp_env_postcheck.sh
+    use_sudo: true
     fabric_env:
       host_string: { get_attribute: [add_cp_vm, capabilities, vm_name_id] }
       user: { get_input: cp_1_vm_user_name }
@@ -102,6 +103,7 @@ dsl_definitions:
 
   ag_env_postcheck_inputs: &ag_env_postcheck_inputs
     script_path: multi-node/vm/scripts/ag_env_postcheck.sh
+    use_sudo: true
     fabric_env:
       host_string: { get_attribute: [add_ag_vm, capabilities, vm_name_id] }
       user: { get_input: cp_1_vm_user_name }
