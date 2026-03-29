@@ -1,0 +1,325 @@
+tosca_definitions_version: dell_1_1
+
+description: >
+  This blueprint creates a Virtual Machine on a NativeEdge Endpoint and provides the VM login details.
+
+imports:
+  - dell/types/types.yaml
+  - multi-node/base_definitions.yaml
+  - multi-node/deploy_inputs.yaml
+  - multi-node/capabilities.yaml
+  - multi-node/vm/scale_definitions.yaml
+  - multi-node/vm/profile_inputs.yaml
+  - multi-node/vm/cp_1_inputs.yaml
+  - multi-node/vm/cp_2_inputs.yaml
+  - multi-node/vm/cp_3_inputs.yaml
+  - multi-node/vm/ag_1_inputs.yaml
+  - multi-node/vm/ag_2_inputs.yaml
+  - multi-node/vm/ag_3_inputs.yaml
+  - multi-node/vm/ag_4_inputs.yaml
+  - multi-node/vm/ag_5_inputs.yaml
+  - multi-node/vm/ag_6_inputs.yaml
+
+input_groups:
+  basic_deploy:
+    display_label: Basic Deployment Configuration
+    collapsible: true
+    index: 0
+    inputs:
+      - rke2_version
+      - number_of_control_plane
+      - number_of_agent_nodes
+      - edge_os_image_secret
+      - os_type
+      - install_ingress
+      - install_servicelb
+      - install_local_path_provisioner
+      - local_path_provisioner_version
+      - install_dns_utility
+      - tls_san
+      - use_registry
+      - registry_secret
+      - registry_url
+      - push_images
+
+  adv_deploy:
+    display_label: Advanced Deployment Configuration
+    collapsible: true
+    index: 1
+    inputs:
+      - cni_type
+      - cluster_cidr
+      - service_cidr
+      - max_pods
+      - rke2_data
+      - kubelet_data
+      - pvc_data
+      - offline_mode
+      - offline_binary_secret
+      - enable_cis
+      - utility_blueprint_id
+      - script_url
+      - hide_log_output
+      - debug
+
+  control_plane_profile:
+    display_label: Control Plane Profile
+    collapsible: true
+    index: 2
+    inputs:
+      - control_plane_taint
+      - cp_vcpus
+      - cp_memory_size
+      - cp_os_disk_size
+      - cp_disk_controller
+
+  first_control_plane:
+    display_label: First Control Plane Details
+    collapsible: true
+    index: 3
+    inputs:
+      - cp_1_vm_name
+      - cp_1_hostname
+      - cp_1_vm_user_name
+      - cp_1_vm_password
+      - cp_1_disk_wrapper
+      - cp_1_vnic_0_segment_name
+      - cp_1_use_dhcp
+      - cp_1_static_ip
+      - cp_1_use_gateway
+      - cp_1_gateway
+      - cp_1_use_dns
+      - cp_1_dns
+      - cp_1_add_disks
+      - cp_1_additional_disks
+      - cp_1_add_nics
+      - cp_1_vm_add_nics
+      - cp_1_use_passthrough
+      - cp_1_usb_wrapper
+      - cp_1_gpu_wrapper
+      - cp_1_pcie_wrapper
+      - cp_1_video
+      - cp_1_serial_port_wrapper
+
+  add_control_plane:
+    display_label: Additional Control Plane Details
+    collapsible: true
+    index: 4
+    inputs:
+      # Control Plane 2
+      - cp_2_deployment_id
+      - cp_2_name
+      - cp_2_hostname
+      - cp_2_disk_wrapper
+      - cp_2_vnic_0_segment_name
+      - cp_2_use_dhcp
+      - cp_2_static_ip
+      - cp_2_use_gateway
+      - cp_2_gateway
+      - cp_2_use_dns
+      - cp_2_dns
+      - cp_2_add_nics
+      - cp_2_vm_add_nics
+      - cp_2_add_disks
+      - cp_2_additional_disks
+      - cp_2_use_passthrough
+      - cp_2_usb_wrapper
+      - cp_2_gpu_wrapper
+      - cp_2_pcie_wrapper
+      - cp_2_video
+      - cp_2_serial_port_wrapper
+      # Control Plane 3
+      - cp_3_deployment_id
+      - cp_3_name
+      - cp_3_hostname
+      - cp_3_disk_wrapper
+      - cp_3_vnic_0_segment_name
+      - cp_3_use_dhcp
+      - cp_3_static_ip
+      - cp_3_use_gateway
+      - cp_3_gateway
+      - cp_3_use_dns
+      - cp_3_dns
+      - cp_3_add_nics
+      - cp_3_vm_add_nics
+      - cp_3_add_disks
+      - cp_3_additional_disks
+      - cp_3_use_passthrough
+      - cp_3_usb_wrapper
+      - cp_3_gpu_wrapper
+      - cp_3_pcie_wrapper
+      - cp_3_video
+      - cp_3_serial_port_wrapper
+
+  agent_profile:
+    display_label: Agent Node Profile
+    collapsible: true
+    index: 5
+    inputs:
+      - ag_vcpus
+      - ag_memory_size
+      - ag_os_disk_size
+      - ag_disk_controller
+      - ag_hardware_options.firmware_type
+      - ag_hardware_options.secure_boot
+      - ag_hardware_options.vTPM
+
+  add_agents:
+    display_label: Agent Node Details
+    collapsible: true
+    index: 6
+    inputs:
+      # Agent 1
+      - ag_deployment_id_01
+      - ag_1_name
+      - ag_1_hostname
+      - ag_1_disk_wrapper
+      - ag_1_vnic_0_segment_name
+      - ag_1_use_dhcp
+      - ag_1_static_ip
+      - ag_1_use_gateway
+      - ag_1_gateway
+      - ag_1_use_dns
+      - ag_1_dns
+      - ag_1_add_nics
+      - ag_1_vm_add_nics
+      - ag_1_add_disks
+      - ag_1_additional_disks
+      - ag_1_use_passthrough
+      - ag_1_usb_wrapper
+      - ag_1_gpu_wrapper
+      - ag_1_pcie_wrapper
+      - ag_1_video
+      - ag_1_serial_port_wrapper
+      # Agent 2
+      - ag_deployment_id_02
+      - ag_2_name
+      - ag_2_hostname
+      - ag_2_disk_wrapper
+      - ag_2_vnic_0_segment_name
+      - ag_2_use_dhcp
+      - ag_2_static_ip
+      - ag_2_use_gateway
+      - ag_2_gateway
+      - ag_2_use_dns
+      - ag_2_dns
+      - ag_2_add_nics
+      - ag_2_vm_add_nics
+      - ag_2_add_disks
+      - ag_2_additional_disks
+      - ag_2_use_passthrough
+      - ag_2_usb_wrapper
+      - ag_2_gpu_wrapper
+      - ag_2_pcie_wrapper
+      - ag_2_video
+      - ag_2_serial_port_wrapper
+      # Agent 3
+      - ag_deployment_id_03
+      - ag_3_name
+      - ag_3_hostname
+      - ag_3_disk_wrapper
+      - ag_3_vnic_0_segment_name
+      - ag_3_use_dhcp
+      - ag_3_static_ip
+      - ag_3_use_gateway
+      - ag_3_gateway
+      - ag_3_use_dns
+      - ag_3_dns
+      - ag_3_add_nics
+      - ag_3_vm_add_nics
+      - ag_3_add_disks
+      - ag_3_additional_disks
+      - ag_3_use_passthrough
+      - ag_3_usb_wrapper
+      - ag_3_gpu_wrapper
+      - ag_3_pcie_wrapper
+      - ag_3_video
+      - ag_3_serial_port_wrapper
+      # Agent 4
+      - ag_deployment_id_04
+      - ag_4_name
+      - ag_4_hostname
+      - ag_4_disk_wrapper
+      - ag_4_vnic_0_segment_name
+      - ag_4_use_dhcp
+      - ag_4_static_ip
+      - ag_4_use_gateway
+      - ag_4_gateway
+      - ag_4_use_dns
+      - ag_4_dns
+      - ag_4_add_nics
+      - ag_4_vm_add_nics
+      - ag_4_add_disks
+      - ag_4_additional_disks
+      - ag_4_use_passthrough
+      - ag_4_usb_wrapper
+      - ag_4_gpu_wrapper
+      - ag_4_pcie_wrapper
+      - ag_4_video
+      - ag_4_serial_port_wrapper
+      # Agent 5
+      - ag_deployment_id_05
+      - ag_5_name
+      - ag_5_hostname
+      - ag_5_disk_wrapper
+      - ag_5_vnic_0_segment_name
+      - ag_5_use_dhcp
+      - ag_5_static_ip
+      - ag_5_use_gateway
+      - ag_5_gateway
+      - ag_5_use_dns
+      - ag_5_dns
+      - ag_5_add_nics
+      - ag_5_vm_add_nics
+      - ag_5_add_disks
+      - ag_5_additional_disks
+      - ag_5_use_passthrough
+      - ag_5_usb_wrapper
+      - ag_5_gpu_wrapper
+      - ag_5_pcie_wrapper
+      - ag_5_video
+      - ag_5_serial_port_wrapper
+      # Agent 6
+      - ag_deployment_id_06
+      - ag_6_name
+      - ag_6_hostname
+      - ag_6_disk_wrapper
+      - ag_6_vnic_0_segment_name
+      - ag_6_use_dhcp
+      - ag_6_static_ip
+      - ag_6_use_gateway
+      - ag_6_gateway
+      - ag_6_use_dns
+      - ag_6_dns
+      - ag_6_add_nics
+      - ag_6_vm_add_nics
+      - ag_6_add_disks
+      - ag_6_additional_disks
+      - ag_6_use_passthrough
+      - ag_6_usb_wrapper
+      - ag_6_gpu_wrapper
+      - ag_6_pcie_wrapper
+      - ag_6_video
+      - ag_6_serial_port_wrapper
+
+labels:
+  csys-obj-type:
+    values:
+      - environment
+  target_environment:
+    values:
+      - ned
+  vendor:
+    values:
+      - tme-tech-ops
+  solution:
+    values:
+      - edge-cloud-init
+  version:
+    values:
+      - "4.1.0.0"
+
+blueprint_labels:
+  env:
+    values:
+      - NED

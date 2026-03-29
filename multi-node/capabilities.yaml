@@ -1,0 +1,62 @@
+capabilities:
+
+  rke2_api_url:
+    description: RKE2 API server URL (https://mgmt_ip:6443)
+    value:
+      get_attribute: [ env_postcheck, capabilities, rke2_api_url ]
+
+  rke2_join_token:
+    description: RKE2 join token for adding nodes to the cluster
+    value:
+      get_attribute: [ env_postcheck, capabilities, rke2_join_token ]
+
+  rke2_kubeconfig:
+    description: Path to the kubeconfig file on the CP1 node
+    value:
+      get_attribute: [ env_postcheck, capabilities, rke2_kubeconfig ]
+
+  rke2_node_status:
+    description: RKE2 cluster node readiness status
+    value:
+      get_attribute: [ env_postcheck, capabilities, rke2_node_status ]
+
+  mgmt_ip:
+    description: Management IP address of the primary control-plane node (CP1)
+    value:
+      get_attribute: [ env_postcheck, capabilities, mgmt_ip ]
+
+  cluster_info:
+    description: Cluster summary including API URL, management IP, and node counts
+    value:
+      get_attribute: [ cluster_results, cluster_info ]
+
+  control_plane_nodes:
+    description: List of control-plane node details (VM info and RKE2 status)
+    value:
+      get_attribute: [ cluster_results, control_plane_nodes ]
+
+  agent_nodes:
+    description: List of agent node details (VM info and RKE2 status)
+    value:
+      get_attribute: [ cluster_results, agent_nodes ]
+
+  vm_user_name:
+    description: SSH username for all cluster VMs
+    value: { get_input: cp_1_vm_user_name }
+
+  vm_ssh_private_key:
+    description: Secret name for the SSH private key used to access cluster VMs
+    value:
+      concat:
+        - get_attribute: [ ssh_keys, secret_key_name ]
+        - "_private"
+
+  proxy_target_id:
+    description: Proxy target ID from the base VM deployment
+    value:
+      get_attribute: [ base_vm, capabilities, proxy_target_id ]
+
+  vm_name_id:
+    description: VM name ID of the primary control-plane node (CP1)
+    value:
+      get_attribute: [ base_vm, capabilities, vm_name_id ]

@@ -1,0 +1,30 @@
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp1s0:
+      dhcp-identifier: mac
+      dhcp4: {{ use_dhcp }} {% if not use_dhcp %}
+      addresses:
+      - {{ static_ip }} {% if use_dns %}
+      nameservers:
+        addresses: {{ dns }} {% endif %} {% if use_gateway %}
+      routes:
+        - to: default
+          via: {{ gateway }} {% endif %} {% endif %} {% for nic in vm_add_nics %}
+    {{ nic.interface }}:
+      dhcp-identifier: mac
+      dhcp4: {{ nic.use_dhcp }} {% if nic.use_dhcp and not nic.accept_dhcp_routes %}
+      dhcp4-overrides:
+        use-routes: false {% endif %} {% if not nic.use_dhcp %}
+      addresses:
+      - {{ nic.static_ip }} {% if nic.use_dns %}
+      nameservers:
+        addresses: {{ nic.dns }} {% endif %} {% if nic.use_gateway %}
+      routes:
+        - to: {{ nic.route_destination }}
+          via: {{ nic.gateway }} {% endif %} {% endif %} {% endfor %}
+    {{ mgmt_interface }}:
+      dhcp4: true
+      dhcp4-overrides:
+        use-routes: false

@@ -1,0 +1,275 @@
+imports:
+  - dell/types/types.yaml
+  - plugin:edge-plugin?version= >=3.3.17.0,<4.0.0.0
+  - plugin:utilities-plugin?version= >=3.1.4.0,<4.0.0.0
+  - plugin:fabric-plugin?version= >=3.4.2.0,<4.0.0.0
+
+dsl_definitions:
+
+# Base CP1 Environment Checks
+  env_precheck_inputs: &env_precheck_inputs
+    script_path: multi-node/scripts/env_precheck.sh
+    process:
+      env:
+        OFFLINE_MODE: { get_input: offline_mode }
+        OFFLINE_BINARY_URL: { get_input: offline_binary_url }
+        OFFLINE_BINARY_USER: { get_input: offline_binary_access_user }
+        OFFLINE_BINARY_PASSWORD: { get_secret: { get_input: offline_binary_access_token } }
+        SCRIPT_URL: { get_input: script_url }
+        TLS_SAN: { get_input: tls_san }
+        REG_URL: { get_input: registry_url }
+        REG_USER: { get_input: registry_access_user }
+        REG_PASS: { concat: [ '"', { get_input: registry_password }, '"' ] }
+    fabric_env:
+      host_string: { get_attribute: [base_vm, capabilities, vm_name_id] }
+      user: { get_input: cp_1_vm_user_name }
+      key: { get_secret: { get_attribute: [base_vm, capabilities, vm_ssh_private_key] } }
+      port: 22
+    hide_output: { get_input: hide_log_output }
+    proxy_settings:
+      auto_resolve: false
+      enable_socks5: false
+      target_id: { get_attribute: [base_vm, capabilities, proxy_target_id] }
+      target_ip: { get_attribute: [base_vm, capabilities, vm_name_id] }
+
+  env_postcheck_inputs: &env_postcheck_inputs
+    script_path: multi-node/scripts/env_postcheck.sh
+    fabric_env:
+      host_string: { get_attribute: [base_vm, capabilities, vm_name_id] }
+      user: { get_input: cp_1_vm_user_name }
+      key: { get_secret: { get_attribute: [base_vm, capabilities, vm_ssh_private_key] } }
+      port: 22
+    hide_output: { get_input: hide_log_output }
+    proxy_settings:
+      auto_resolve: false
+      enable_socks5: false
+      target_id: { get_attribute: [base_vm, capabilities, proxy_target_id] }
+      target_ip: { get_attribute: [base_vm, capabilities, vm_name_id] }
+
+# App deploy
+  run_install_cmds: &run_install_cmds
+    - concat: [ "sudo -E ./rke2_installer.sh ", { get_attribute: [ env_precheck, capabilities, install_cmd ] } ]
+  run_uninstall_cmds: &run_uninstall_cmds
+    - "sudo -E ./rke2_installer.sh uninstall"
+
+  shell_env: &shell_env
+    RKE2_VERSION: { get_input: rke2_version }
+    CNI_TYPE: { get_input: cni_type }
+    ENABLE_CIS: { get_input: enable_cis }
+    CLUSTER_CIDR: { get_input: cluster_cidr }
+    SERVICE_CIDR: { get_input: service_cidr }
+    MAX_PODS: { get_input: max_pods }
+    INSTALL_INGRESS: { get_input: install_ingress }
+    INSTALL_SERVICELB: { get_input: install_servicelb }
+    INSTALL_LOCAL_PATH_PROVISIONER: { get_input: install_local_path_provisioner }
+    LOCAL_PATH_PROVISIONER_VERSION: { get_input: local_path_provisioner_version }
+    INSTALL_DNS_UTILITY: { get_input: install_dns_utility }
+    RKE2_DATA: { get_input: rke2_data }
+    KUBELET_DATA: { get_input: kubelet_data }
+    PVC_DATA: { get_input: pvc_data }
+    CONTROL_PLANE_TAINT: { get_input: control_plane_taint }
+    DEBUG: { get_input: debug }
+
+  command_fabric_env: &command_fabric_env
+    shell_env:
+      <<: *shell_env
+    host_string: { get_attribute: [base_vm, capabilities, vm_name_id] }
+    user: { get_input: cp_1_vm_user_name }
+    key: { get_secret: { get_attribute: [base_vm, capabilities, vm_ssh_private_key] } }
+    port: 22
+
+node_templates:
+
+  ssh_keys:
+    type: dell.nodes.keys.RSAKey
+    properties:
+      use_secret_store: true
+      use_secrets_if_exist: true
+      key_name: "edge_key"
+      resource_config:
+        openssh_format: true
+        key_name: "edge_key"
+    interfaces:
+      dell.interfaces.lifecycle:
+        create:
+          implementation: keys.ne_ssh_key.operations.create
+          inputs:
+            store_public_key_material: false
+            store_private_key_material: false
+        delete: {}
+
+  binary_image:
+    type: dell.nodes.nativeedge.template.BinaryImage
+    properties:
+      binary_image_config:
+        artifact:
+          path: { get_input: binary_image_url }
+          username: { get_input: binary_image_access_user }
+          access_token: { get_secret: { get_input: binary_image_access_token } }
+        version: { get_input: binary_image_version }
+    interfaces:
+      dell.interfaces.lifecycle:
+        precreate:
+          implementation:
+            edge.nativeedge_plugin.tasks.validate_binary_image_config
+        create:
+          implementation:
+            edge.nativeedge_plugin.tasks.upload_binary
+        delete:
+          implementation:
+            edge.nativeedge_plugin.tasks.delete_binary
+
+  prep_config:
+    type: dell.nodes.ApplicationModule
+    interfaces:
+      dell.interfaces.lifecycle:
+        precreate:
+          implementation: multi-node/scripts/prepare_base_vm_config.py
+          executor: central_deployment_agent
+          inputs:
+            primary_segment: { get_input: cp_1_segment_name }
+            vm_add_nics: { get_input: cp_1_vm_add_nics }
+            use_dhcp: { get_input: cp_1_use_dhcp }
+            static_ip: { get_input: cp_1_static_ip }
+            use_gateway: { get_input: cp_1_use_gateway }
+            gateway: { get_input: cp_1_gateway }
+            use_dns: { get_input: cp_1_use_dns }
+            dns: { get_input: cp_1_dns }
+            vm_hostname: { get_input: cp_1_hostname }
+            vm_user_name: { get_input: cp_1_vm_user_name }
+            vm_password: { get_secret: { get_input: cp_1_vm_password } }
+            ssh_public_key:
+              get_secret:
+                concat:
+                  - get_attribute: [ssh_keys, secret_key_name]
+                  - "_public"
+            cloudinit_override: { get_input: cloudinit }
+    relationships:
+      - type: dell.relationships.depends_on
+        target: ssh_keys
+
+  base_vm:
+    type: dell.nodes.ServiceComponent
+    properties:
+      resource_config:
+        blueprint:
+          external_resource: true
+          id: { get_input: utility_blueprint_id }
+        deployment:
+          display_name: { concat: ["utility-vm-", get_input: cp_1_vm_name] }
+          inputs:
+            service_tag: { get_environment_capability: ece_service_tag }
+            name: { get_input: cp_1_vm_name }
+            image: { get_attribute: [binary_image, binary_details, extra, artifact_id] }
+            os_type: { get_input: os_type }
+            cpu: { get_input: cp_vcpus }
+            memory: { get_input: cp_memory_size }
+            storage: { get_input: cp_os_disk_size }
+            disk: { get_input: cp_1_disk }
+            disk_controller: { get_input: cp_disk_controller }
+            hardware_options.vTPM: { get_input: hardware_options.vTPM }
+            hardware_options.secure_boot: { get_input: hardware_options.secure_boot }
+            hardware_options.firmware_type: { get_input: hardware_options.firmware_type }
+            enable_management: { get_input: enable_management }
+            network_settings: { get_attribute: [prep_config, network_settings] }
+            cloudinit: { get_attribute: [prep_config, cloudinit_config] }
+            vm_user_name: { get_input: cp_1_vm_user_name }
+            ssh_private_key_secret:
+              concat:
+                - get_attribute: [ssh_keys, secret_key_name]
+                - "_private"
+            vm_hostname: { get_input: cp_1_hostname }
+            additional_disks: { get_input: cp_1_additional_disks }
+            usb: { get_input: cp_1_usb }
+            serial_port: { get_input: cp_1_serial_port }
+            gpu: { get_input: cp_1_gpu }
+            video: { get_input: cp_1_video }
+            pcie: { get_input: cp_1_pcie }
+            iso_files: { get_input: iso_files }
+            boot_order: { get_input: boot_order }
+    relationships:
+      - type: dell.relationships.depends_on
+        target: prep_config
+      - type: dell.relationships.depends_on
+        target: binary_image
+      - type: dell.relationships.depends_on
+        target: ssh_keys
+
+  env_precheck:
+    type: dell.nodes.Root
+    interfaces:
+      dell.interfaces.lifecycle:
+        create:
+          implementation: fabric.fabric_plugin.tasks.run_script
+          inputs:
+            <<: *env_precheck_inputs
+        update:
+          implementation: fabric.fabric_plugin.tasks.run_script
+          inputs:
+            <<: *env_precheck_inputs
+    relationships:
+       - type: dell.relationships.depends_on
+         target: base_vm
+
+  install_app:
+    type: dell.nodes.Root
+    interfaces:
+      dell.interfaces.lifecycle:
+        create:
+          executor: central_deployment_agent
+          implementation: fabric.fabric_plugin.tasks.run_commands
+          inputs:
+            hide_output: { get_input: hide_log_output }
+            proxy_settings:
+              auto_resolve: false
+              enable_socks5: false
+              target_id: { get_attribute: [base_vm, capabilities, proxy_target_id] }
+              target_ip: { get_attribute: [base_vm, capabilities, vm_name_id] }
+            commands: *run_install_cmds
+            fabric_env:
+              <<: *command_fabric_env
+        update:
+          executor: central_deployment_agent
+          implementation: fabric.fabric_plugin.tasks.run_commands
+          inputs:
+            hide_output: { get_input: hide_log_output }
+            proxy_settings:
+              auto_resolve: false
+              enable_socks5: false
+              target_id: { get_attribute: [base_vm, capabilities, proxy_target_id] }
+              target_ip: { get_attribute: [base_vm, capabilities, vm_name_id] }
+            commands: *run_install_cmds
+            fabric_env:
+              <<: *command_fabric_env
+        stop:
+          executor: central_deployment_agent
+          implementation: fabric.fabric_plugin.tasks.run_commands
+          inputs:
+            hide_output: { get_input: hide_log_output }
+            proxy_settings:
+              auto_resolve: false
+              enable_socks5: false
+              target_id: { get_attribute: [base_vm, capabilities, proxy_target_id] }
+              target_ip: { get_attribute: [base_vm, capabilities, vm_name_id] }
+            commands: *run_uninstall_cmds
+            fabric_env:
+              <<: *command_fabric_env
+    relationships:
+       - type: dell.relationships.depends_on
+         target: env_precheck
+
+  env_postcheck:
+    type: dell.nodes.Root
+    interfaces:
+      dell.interfaces.lifecycle:
+        create:
+          implementation: fabric.fabric_plugin.tasks.run_script
+          inputs:
+            <<: *env_postcheck_inputs
+        update:
+          implementation: fabric.fabric_plugin.tasks.run_script
+          inputs:
+            <<: *env_postcheck_inputs
+    relationships:
+       - type: dell.relationships.depends_on
+         target: install_app

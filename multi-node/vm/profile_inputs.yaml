@@ -1,0 +1,232 @@
+inputs:
+
+# Profile Inputs
+
+## Control Plane Profile
+
+  control_plane_taint:
+    type: boolean
+    hidden: false
+    required: true
+    allow_update: false
+    display_label: Taint Control Plane
+    description: |
+      Set to true to taint the control-plane nodes so workloads only run on agent nodes.
+      When false (default), control-plane nodes also act as workers (compact cluster).
+    default: false
+    constraints:
+      - valid_values: [true, false]
+        error_message: Must be true or false.
+    display:
+      group: control_plane_profile
+      index: 0
+
+  cp_vcpus:
+    type: integer
+    hidden: false
+    allow_update: true
+    display_label: Control Plane vCPUs
+    description: Number of virtual CPUs allocated to each control-plane VM.
+    default: 4
+    constraints:
+      - greater_or_equal: 2
+        error_message: Minimum 2 vCPUs required.
+    display:
+      group: control_plane_profile
+      index: 1
+
+  cp_memory_size:
+    type: string
+    hidden: false
+    allow_update: true
+    display_label: Control Plane Memory Size
+    description: Memory size with unit [KB,MB,GB,TB,PB,EB,ZB,YB] for each control-plane VM.
+    default: 8GB
+    constraints:
+      - pattern: '\d+(\.\d+)?(KB|MB|GB|TB|PB|EB|ZB|YB)'
+        error_message: |
+          Incorrect format.
+          Memory size must be followed by unit [KB,MB,GB,TB,PB,EB,ZB,YB].
+          Example: 8GB
+    display:
+      group: control_plane_profile
+      index: 2
+
+  cp_os_disk_size:
+    type: string
+    hidden: false
+    allow_update: true
+    display_label: Control Plane OS Disk Size
+    description: OS disk size with unit [KB,MB,GB,TB,PB,EB,ZB,YB] for each control-plane VM.
+    default: 100GB
+    required: true
+    constraints:
+      - pattern: '\d+(\.\d+)?(KB|MB|GB|TB|PB|EB|ZB,YB)'
+        error_message: |
+          Incorrect format.
+          Disk size must be followed by unit [KB,MB,GB,TB,PB,EB,ZB,YB].
+          Example: 100GB
+    display:
+      group: control_plane_profile
+      index: 3
+
+  cp_disk_controller:
+    type: string
+    display_label: Control Plane Disk Controller
+    allow_update: true
+    description: Disk controller type for control-plane VMs.
+    default: VIRTIO
+    hidden: false
+    constraints:
+      - valid_values:
+          - 'VIRTIO'
+          - 'SATA'
+          - 'SCSI'
+        error_message: Must be VIRTIO, SATA, or SCSI.
+    display:
+      group: control_plane_profile
+      index: 4
+
+## Agent Node Profile
+
+  ag_vcpus:
+    type: integer
+    hidden: false
+    allow_update: true
+    display_label: Agent Node vCPUs
+    description: Number of virtual CPUs allocated to each agent VM.
+    default: 4
+    constraints:
+      - greater_or_equal: 2
+        error_message: Minimum 2 vCPUs required.
+    display:
+      group: agent_profile
+      index: 0
+
+  ag_memory_size:
+    type: string
+    hidden: false
+    allow_update: true
+    display_label: Agent Node Memory Size
+    description: Memory size with unit [KB,MB,GB,TB,PB,EB,ZB,YB] for each agent VM.
+    default: 8GB
+    constraints:
+      - pattern: '\d+(\.\d+)?(KB|MB|GB|TB|PB|EB,ZB,YB)'
+        error_message: |
+          Incorrect format.
+          Memory size must be followed by unit [KB,MB,GB,TB,PB,EB,ZB,YB].
+          Example: 8GB
+    display:
+      group: agent_profile
+      index: 1
+
+  ag_os_disk_size:
+    type: string
+    hidden: false
+    allow_update: true
+    display_label: Agent Node OS Disk Size
+    description: OS disk size with unit [KB,MB,GB,TB,PB,EB,ZB,YB] for each agent VM.
+    default: 100GB
+    required: true
+    constraints:
+      - pattern: '\d+(\.\d+)?(KB|MB|GB|TB|PB|EB,ZB,YB)'
+        error_message: |
+          Incorrect format.
+          Disk size must be followed by unit [KB,MB,GB,TB,PB,EB,ZB,YB].
+          Example: 100GB
+    display:
+      group: agent_profile
+      index: 2
+
+  ag_disk_controller:
+    type: string
+    display_label: Agent Node Disk Controller
+    allow_update: true
+    description: Disk controller type for agent VMs.
+    default: VIRTIO
+    hidden: false
+    constraints:
+      - valid_values:
+          - 'VIRTIO'
+          - 'SATA'
+          - 'SCSI'
+        error_message: Must be VIRTIO, SATA, or SCSI.
+    display:
+      group: agent_profile
+      index: 3
+
+  ag_hardware_options.firmware_type:
+    type: string
+    hidden: false
+    allow_update: false
+    display_label: Agent Firmware Type
+    description: |
+      The firmware type configured in the agent Virtual Machines.
+    default: BIOS
+    constraints:
+      - valid_values: [BIOS, UEFI]
+        error_message: Must be BIOS or UEFI.
+    display:
+      group: agent_profile
+      index: 4
+
+  ag_hardware_options.secure_boot:
+    type: boolean
+    hidden: false
+    allow_update: false
+    required: false
+    display_label: Agent Secure Boot
+    description: |
+      Enable secure boot for agent VMs.
+    default: false
+    constraints:
+      - valid_values: [true, false]
+        error_message: Must be true or false.
+    display:
+      group: agent_profile
+      index: 5
+
+  ag_hardware_options.vTPM:
+    type: boolean
+    hidden: false
+    allow_update: false
+    required: false
+    display_label: Agent Add vTPM
+    description: |
+      Enable vTPM for agent VMs.
+      Typically required for Secure Boot.
+    default: false
+    constraints:
+      - valid_values: [true, false]
+        error_message: Must be true or false.
+    display:
+      group: agent_profile
+      index: 6
+
+## Hidden CP Hardware (shared defaults for control-plane)
+
+  hardware_options.firmware_type:
+    type: string
+    hidden: true
+    allow_update: false
+    display_label: Firmware Type
+    description: Firmware type for control-plane VMs.
+    default: BIOS
+
+  hardware_options.secure_boot:
+    type: boolean
+    hidden: true
+    allow_update: false
+    required: false
+    display_label: Secure Boot
+    description: Enable secure boot for control-plane VMs.
+    default: false
+
+  hardware_options.vTPM:
+    type: boolean
+    hidden: true
+    allow_update: false
+    required: false
+    display_label: Add vTPM
+    description: Enable vTPM for control-plane VMs.
+    default: false

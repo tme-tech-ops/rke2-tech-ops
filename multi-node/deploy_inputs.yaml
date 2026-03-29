@@ -1,0 +1,549 @@
+inputs:
+
+### Basic Deployment Configuration ###
+
+  rke2_version:
+    type: string
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: RKE2 Version
+    description: |
+      RKE2 Kubernetes version to install
+    default: "v1.34.5+rke2r1"
+    display:
+      group: basic_deploy
+      index: 0
+
+  number_of_control_plane:
+    display_label: Number of Control Plane Nodes
+    description: |
+      Number of control-plane nodes. Must be odd (1, 3, or 5) for etcd quorum.
+    type: integer
+    required: true
+    default: 1
+    display:
+      group: basic_deploy
+      index: 1
+    constraints:
+      - valid_values:
+          - 1
+          - 3
+        error_message: Control plane count must be 1, 3.
+
+  number_of_agent_nodes:
+    display_label: Number of Agent (Worker) Nodes
+    description: |
+      Number of agent/worker nodes to deploy. Set to 0 for control-plane only.
+    type: integer
+    required: true
+    default: 0
+    display:
+      group: basic_deploy
+      index: 2
+    constraints:
+      - valid_values:
+          - 0
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+        error_message: Agent node count must be between 0 and 6.
+
+  edge_os_image_secret:
+    type: secret_key
+    hidden: false
+    allow_update: true
+    display_label: OS Image Secret for Virtual Machine creation
+    description: |
+      Secret containing url, username, access_token, and
+      version of the os image.
+    constraints:
+      - type: binary_configuration
+    display:
+      group: basic_deploy
+      index: 3
+
+  os_type:
+    type: string
+    hidden: false
+    allow_update: false
+    display_label: OS Type
+    description: The virtual machine Operating System.
+    default: UBUNTU22.04
+    constraints:
+      - valid_values:
+          - "UBUNTU18.04"
+          - "UBUNTU20.04"
+          - "UBUNTU22.04"
+          - "UBUNTU22.10"
+          - "UBUNTU24.04"
+          - "DEBIAN-32B"
+          - "DEBIAN-64B"
+          - "RHEL9"
+          - "SUSE-SLES15"
+          - "LINUX-OTHER"
+        error_message: Must be a supported OS type.
+    display:
+      group: basic_deploy
+      index: 4
+
+  install_ingress:
+    type: boolean
+    hidden: false
+    required: true
+    allow_update: false
+    display_label: Install NGINX Ingress
+    description: |
+      Install the default RKE2 NGINX ingress controller
+    default: false
+    constraints:
+      - valid_values: [true, false]
+        error_message: Must be true or false.
+    display:
+      group: basic_deploy
+      index: 5
+
+  install_servicelb:
+    type: boolean
+    hidden: false
+    required: true
+    allow_update: false
+    display_label: Install ServiceLB
+    description: |
+      Install Klipper service load balancer
+    default: false
+    constraints:
+      - valid_values: [true, false]
+        error_message: Must be true or false.
+    display:
+      group: basic_deploy
+      index: 6
+
+  install_local_path_provisioner:
+    type: boolean
+    hidden: false
+    required: true
+    allow_update: false
+    display_label: Install Local Path Provisioner
+    description: |
+      Install Rancher's local-path-provisioner storage class
+    default: false
+    constraints:
+      - valid_values: [true, false]
+        error_message: Must be true or false.
+    display:
+      group: basic_deploy
+      index: 7
+
+  local_path_provisioner_version:
+    type: string
+    hidden: false
+    required: true
+    allow_update: true
+    only_with: install_local_path_provisioner
+    display_label: Local Path Provisioner Version
+    description: |
+      Version of the local-path-provisioner to install
+    default: "v0.0.32"
+    display:
+      group: basic_deploy
+      index: 8
+
+  install_dns_utility:
+    type: boolean
+    hidden: false
+    required: true
+    allow_update: false
+    display_label: Install DNS Utility
+    description: |
+      Install kubernetes.io DNS utility container
+    default: false
+    constraints:
+      - valid_values: [true, false]
+        error_message: Must be true or false.
+    display:
+      group: basic_deploy
+      index: 9
+
+  tls_san:
+    type: string
+    hidden: false
+    required: false
+    allow_update: false
+    display_label: TLS SAN
+    description: |
+      Additional TLS Subject Alternative Name (FQDN or IP) for the API server certificate.
+      Leave blank if not needed.
+    default: ""
+    display:
+      group: basic_deploy
+      index: 10
+
+  use_registry:
+    type: boolean
+    hidden: false
+    required: false
+    allow_update: true
+    display_label: Use Private Registry
+    description: |
+      Enable to configure a private container registry for RKE2 images.
+    default: false
+    constraints:
+      - valid_values: [true, false]
+        error_message: Must be true or false.
+    display:
+      group: basic_deploy
+      index: 11
+
+  registry_secret:
+    type: secret_key
+    hidden: false
+    required: false
+    allow_update: true
+    only_with: use_registry
+    display_label: Registry Authentication Secret
+    description: |
+      Secret containing the username and password for a local container registry.
+    constraints:
+      - type: basic_auth_credentials
+    display:
+      group: basic_deploy
+      index: 12
+
+  registry_url:
+    type: string
+    hidden: false
+    required: false
+    allow_update: true
+    only_with: use_registry
+    display_label: Registry URL
+    description: |
+      URL of the local container registry (e.g. myregistry.lab:5000)
+    default: ""
+    display:
+      group: basic_deploy
+      index: 13
+
+  push_images:
+    type: boolean
+    hidden: false
+    required: false
+    allow_update: true
+    only_with: use_registry
+    display_label: Push Images to Registry
+    description: |
+      Push RKE2 images to the private registry during installation.
+    default: false
+    constraints:
+      - valid_values: [true, false]
+        error_message: Must be true or false.
+    display:
+      group: basic_deploy
+      index: 14
+
+### Advanced Deployment Configuration ###
+
+  cni_type:
+    type: string
+    hidden: false
+    required: true
+    allow_update: false
+    display_label: CNI Plugin
+    description: |
+      Container Network Interface plugin for pod networking
+    default: "canal"
+    constraints:
+      - valid_values:
+          - "calico"
+          - "canal"
+          - "cilium"
+          - "none"
+        error_message: Must be calico, canal, cilium, or none.
+    display:
+      group: adv_deploy
+      index: 0
+
+  cluster_cidr:
+    type: string
+    hidden: false
+    required: true
+    allow_update: false
+    display_label: Cluster CIDR
+    description: |
+      Pod network CIDR range
+    default: "10.42.0.0/16"
+    display:
+      group: adv_deploy
+      index: 1
+
+  service_cidr:
+    type: string
+    hidden: false
+    required: true
+    allow_update: false
+    display_label: Service CIDR
+    description: |
+      Service network CIDR range
+    default: "10.43.0.0/16"
+    display:
+      group: adv_deploy
+      index: 2
+
+  max_pods:
+    type: integer
+    hidden: false
+    required: true
+    allow_update: false
+    display_label: Max Pods Per Node
+    description: |
+      Maximum number of pods per node
+    default: 110
+    display:
+      group: adv_deploy
+      index: 3
+
+  rke2_data:
+    type: string
+    hidden: false
+    required: true
+    allow_update: false
+    display_label: RKE2 Data Path
+    description: |
+      Path where etcd, containerd, and RKE2 data is stored.
+      Use 'default' for /var/lib/rancher/rke2.
+    default: "default"
+    display:
+      group: adv_deploy
+      index: 4
+
+  kubelet_data:
+    type: string
+    hidden: false
+    required: true
+    allow_update: false
+    display_label: Kubelet Data Path
+    description: |
+      Path where kubelet data is stored.
+      Use 'default' for /var/lib/kubelet.
+    default: "default"
+    display:
+      group: adv_deploy
+      index: 5
+
+  pvc_data:
+    type: string
+    hidden: false
+    required: true
+    allow_update: false
+    display_label: PVC Data Path
+    description: |
+      Path where storage class PVCs are stored.
+      Use 'default' for /opt/local-path-provisioner.
+    default: "default"
+    display:
+      group: adv_deploy
+      index: 6
+
+  offline_mode:
+    type: boolean
+    hidden: false
+    allow_update: true
+    display_label: Airgapped Mode
+    description: |
+      Set to true to download and install from specified offline package
+    default: false
+    constraints:
+      - valid_values: [true, false]
+        error_message: Must be true or false.
+    display:
+      group: adv_deploy
+      index: 7
+
+  offline_binary_secret:
+    type: secret_key
+    hidden: false
+    only_with: offline_mode
+    allow_update: true
+    display_label: Offline Binary Configuration Secret
+    description: |
+      Secret containing url, username, access_token, and
+      version of the offline archive binary.
+    constraints:
+      - type: binary_configuration
+    display:
+      group: adv_deploy
+      index: 8
+
+  enable_cis:
+    type: boolean
+    hidden: false
+    required: true
+    allow_update: false
+    display_label: Enable CIS Hardening
+    description: |
+      Enable Kubernetes CIS benchmark hardening profile
+    default: false
+    constraints:
+      - valid_values: [true, false]
+        error_message: Must be true or false.
+    display:
+      group: adv_deploy
+      index: 9
+
+  utility_blueprint_id:
+    type: string
+    hidden: false
+    display_label: Utility VM Blueprint Name
+    description: >
+      Name of the uploaded edge-cloudinit Utility blueprint.
+      Used for both the base VM and additional VM deployments.
+    default: edge-cloudinit-utility-vm
+    display:
+      group: adv_deploy
+      index: 10
+
+  script_url:
+    type: string
+    hidden: false
+    exclusive_with: offline_mode
+    allow_update: true
+    display_label: Script URL
+    description: |
+      URL of the RKE2 installer script to be executed
+    default: "https://github.com/Chubtoad5/rke2-installer/raw/refs/heads/main/rke2_installer.sh"
+    display:
+      group: adv_deploy
+      index: 11
+
+  hide_log_output:
+    type: list
+    hidden: false
+    allow_update: true
+    display_label: Log Output to hide
+    description: |
+      stdout hides standard output, stderr hides standard error, both hides both
+    default: ["stdout"]
+    constraints:
+      - valid_values:
+          - "both"
+          - "stdout"
+          - "stderr"
+        error_message: Must be both, stdout, or stderr.
+    display:
+      group: adv_deploy
+      index: 12
+
+  debug:
+    type: integer
+    hidden: false
+    required: true
+    allow_update: true
+    display_label: Debug Logging
+    description: |
+      Set to 0 or 1 to enable or disable debug logging
+    default: 1
+    display:
+      group: adv_deploy
+      index: 13
+
+# Hidden Artifact
+  binary_image_url:
+    type: string
+    hidden: true
+    allow_update: false
+    display_label: Virtual Machine Image Repository URL
+    description: |
+      URL of the OS Image that will be used to create the Virtual Machine.
+    default:
+      get_secret:
+        - get_input: edge_os_image_secret
+        - binary_image_url
+
+  binary_image_access_user:
+    type: string
+    hidden: true
+    display_label: Virtual Machine Image Repository User Name
+    description: |
+      User name of the Repository of the Image Binary.
+    default:
+      get_secret:
+        - get_input: edge_os_image_secret
+        - binary_image_access_user
+
+  binary_image_access_token:
+    type: list
+    hidden: true
+    display_label: Virtual Machine Image Repository Token Secret Name
+    description: |
+      Name of the secret storing the Token to the Repository.
+    default:
+      - get_input: edge_os_image_secret
+      - binary_image_access_token
+
+  binary_image_version:
+    type: string
+    hidden: true
+    display_label: Virtual Machine Image Version
+    description: |
+      Virtual Machine Image Version.
+    default:
+      get_secret:
+        - get_input: edge_os_image_secret
+        - binary_image_version
+
+# Hidden Offline Binary
+  offline_binary_url:
+    type: string
+    hidden: true
+    allow_update: false
+    display_label: Offline Binary URL
+    description: URL of the offline archive binary.
+    default:
+      get_secret:
+        - get_input: offline_binary_secret
+        - binary_image_url
+
+  offline_binary_access_user:
+    type: string
+    hidden: true
+    display_label: Offline Binary Username
+    description: Username for the offline binary repository.
+    default:
+      get_secret:
+        - get_input: offline_binary_secret
+        - binary_image_access_user
+
+  offline_binary_access_token:
+    type: list
+    hidden: true
+    display_label: Offline Binary Access Token
+    description: Access token for the offline binary repository.
+    default:
+      - get_input: offline_binary_secret
+      - binary_image_access_token
+
+# Hidden Registry
+  registry_access_user:
+    type: string
+    hidden: true
+    display_label: Registry Username
+    description: Username for the local container registry derived from registry_secret.
+    default:
+      get_secret:
+        - get_input: registry_secret
+        - username
+
+  registry_password:
+    type: string
+    hidden: true
+    display_label: Registry Password
+    description: Password for the local container registry derived from registry_secret.
+    default:
+      get_secret:
+        - get_input: registry_secret
+        - password
+
+
