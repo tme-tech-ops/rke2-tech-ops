@@ -47,8 +47,6 @@ if __name__ == "__main__":
         cp1_postcheck = {
             'rke2_running': caps.get('rke2_running', 'false'),
             'rke2_node_status': caps.get('rke2_node_status', 'N/A'),
-            'rke2_api_url': caps.get('rke2_api_url', 'N/A'),
-            'mgmt_ip': caps.get('mgmt_ip', ''),
         }
         break
 
@@ -120,8 +118,6 @@ if __name__ == "__main__":
 
     # --- Build cluster info summary ---
     cluster_info = {
-        'rke2_api_url': cp1_postcheck.get('rke2_api_url', 'N/A'),
-        'mgmt_ip': cp1_postcheck.get('mgmt_ip', ''),
         'total_control_plane': len(control_plane_nodes),
         'total_agents': len(agent_nodes),
     }

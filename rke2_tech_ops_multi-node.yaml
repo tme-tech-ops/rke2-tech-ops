@@ -31,6 +31,8 @@ input_groups:
       - number_of_agent_nodes
       - edge_os_image_secret
       - os_type
+      - cp_1_vm_user_name
+      - cp_1_vm_password
       - install_ingress
       - install_servicelb
       - install_local_path_provisioner
@@ -61,6 +63,7 @@ input_groups:
       - script_url
       - hide_log_output
       - debug
+      - sa_namespace
 
   control_plane_profile:
     display_label: Control Plane Profile
@@ -80,8 +83,6 @@ input_groups:
     inputs:
       - cp_1_vm_name
       - cp_1_hostname
-      - cp_1_vm_user_name
-      - cp_1_vm_password
       - cp_1_disk_wrapper
       - cp_1_vnic_0_segment_name
       - cp_1_use_dhcp

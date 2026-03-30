@@ -35,6 +35,9 @@ dsl_definitions:
   env_postcheck_inputs: &env_postcheck_inputs
     script_path: multi-node/scripts/env_postcheck.sh
     use_sudo: true
+    process:
+      env:
+        SA_NAMESPACE: { get_input: sa_namespace }
     fabric_env:
       host_string: { get_attribute: [base_vm, capabilities, vm_name_id] }
       user: { get_input: cp_1_vm_user_name }

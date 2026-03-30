@@ -35,35 +35,6 @@ inputs:
       group: first_control_plane
       index: 1
 
-  cp_1_vm_user_name:
-    type: string
-    hidden: false
-    allow_update: false
-    display_label: VM Username
-    description: |
-      Username to be used for all virtual machines.
-      Cannot contain leading or trailing spaces.
-    default: edgeuser
-    constraints:
-      - pattern: ^(?!\s)(?!.*\s$).*$
-        error_message: Cannot contain leading or trailing spaces.
-    display:
-      group: first_control_plane
-      index: 2
-
-  cp_1_vm_password:
-    type: secret_key
-    hidden: false
-    display_label: VM Password
-    description: |
-      Secret key containing the virtual machine username password in SHA-512.
-      Used for all VMs in the cluster.
-    constraints:
-      - type: password
-    display:
-      group: first_control_plane
-      index: 3
-
   cp_1_disk_wrapper:
     type: string
     hidden: false

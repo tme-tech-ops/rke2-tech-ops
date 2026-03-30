@@ -15,15 +15,25 @@ capabilities:
     value:
       get_attribute: [ env_postcheck, capabilities, rke2_kubeconfig ]
 
-  rke2_node_status:
-    description: RKE2 cluster node readiness status
+  rke2_ca_cert:
+    description: RKE2 cluster CA certificate (decoded PEM)
     value:
-      get_attribute: [ env_postcheck, capabilities, rke2_node_status ]
+      get_attribute: [ env_postcheck, capabilities, rke2_ca_cert ]
 
-  mgmt_ip:
-    description: Management IP address of the primary control-plane node (CP1)
+  rke2_ca_cert_b64:
+    description: RKE2 cluster CA certificate (base64-encoded)
     value:
-      get_attribute: [ env_postcheck, capabilities, mgmt_ip ]
+      get_attribute: [ env_postcheck, capabilities, rke2_ca_cert_b64 ]
+
+  service_account:
+    description: Kubernetes service account name for DAP integration
+    value:
+      get_attribute: [ env_postcheck, capabilities, service_account ]
+
+  bearer_token:
+    description: Bearer token for the DAP service account
+    value:
+      get_attribute: [ env_postcheck, capabilities, bearer_token ]
 
   cluster_info:
     description: Cluster summary including API URL, management IP, and node counts
@@ -50,13 +60,3 @@ capabilities:
       concat:
         - get_attribute: [ ssh_keys, secret_key_name ]
         - "_private"
-
-  proxy_target_id:
-    description: Proxy target ID from the base VM deployment
-    value:
-      get_attribute: [ base_vm, capabilities, proxy_target_id ]
-
-  vm_name_id:
-    description: VM name ID of the primary control-plane node (CP1)
-    value:
-      get_attribute: [ base_vm, capabilities, vm_name_id ]

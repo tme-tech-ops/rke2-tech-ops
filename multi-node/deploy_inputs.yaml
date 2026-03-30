@@ -90,6 +90,35 @@ inputs:
       group: basic_deploy
       index: 4
 
+  cp_1_vm_user_name:
+    type: string
+    hidden: false
+    allow_update: false
+    display_label: VM Username
+    description: |
+      Username to be used for all virtual machines.
+      Cannot contain leading or trailing spaces.
+    default: edgeuser
+    constraints:
+      - pattern: ^(?!\s)(?!.*\s$).*$
+        error_message: Cannot contain leading or trailing spaces.
+    display:
+      group: basic_deploy
+      index: 5
+
+  cp_1_vm_password:
+    type: secret_key
+    hidden: false
+    display_label: VM Password
+    description: |
+      Secret key containing the virtual machine username password in SHA-512.
+      Used for all VMs in the cluster.
+    constraints:
+      - type: password
+    display:
+      group: basic_deploy
+      index: 6
+
   install_ingress:
     type: boolean
     hidden: false
@@ -104,7 +133,7 @@ inputs:
         error_message: Must be true or false.
     display:
       group: basic_deploy
-      index: 5
+      index: 7
 
   install_servicelb:
     type: boolean
@@ -120,7 +149,7 @@ inputs:
         error_message: Must be true or false.
     display:
       group: basic_deploy
-      index: 6
+      index: 8
 
   install_local_path_provisioner:
     type: boolean
@@ -136,7 +165,7 @@ inputs:
         error_message: Must be true or false.
     display:
       group: basic_deploy
-      index: 7
+      index: 9
 
   local_path_provisioner_version:
     type: string
@@ -150,7 +179,7 @@ inputs:
     default: "v0.0.32"
     display:
       group: basic_deploy
-      index: 8
+      index: 10
 
   install_dns_utility:
     type: boolean
@@ -166,7 +195,7 @@ inputs:
         error_message: Must be true or false.
     display:
       group: basic_deploy
-      index: 9
+      index: 11
 
   tls_san:
     type: string
@@ -180,7 +209,7 @@ inputs:
     default: ""
     display:
       group: basic_deploy
-      index: 10
+      index: 12
 
   use_registry:
     type: boolean
@@ -196,7 +225,7 @@ inputs:
         error_message: Must be true or false.
     display:
       group: basic_deploy
-      index: 11
+      index: 13
 
   registry_secret:
     type: secret_key
@@ -211,7 +240,7 @@ inputs:
       - type: basic_auth_credentials
     display:
       group: basic_deploy
-      index: 12
+      index: 14
 
   registry_url:
     type: string
@@ -225,7 +254,7 @@ inputs:
     default: ""
     display:
       group: basic_deploy
-      index: 13
+      index: 15
 
   push_images:
     type: boolean
@@ -242,7 +271,7 @@ inputs:
         error_message: Must be true or false.
     display:
       group: basic_deploy
-      index: 14
+      index: 16
 
 ### Advanced Deployment Configuration ###
 
@@ -448,6 +477,19 @@ inputs:
     display:
       group: adv_deploy
       index: 13
+
+  sa_namespace:
+    type: string
+    hidden: false
+    required: true
+    allow_update: false
+    display_label: Service Account Namespace
+    description: |
+      Kubernetes namespace for the DAP service account, cluster role binding, and bearer token.
+    default: "kube-system"
+    display:
+      group: adv_deploy
+      index: 14
 
 # Hidden Artifact
   binary_image_url:
