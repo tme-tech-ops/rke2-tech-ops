@@ -1,5 +1,5 @@
 import json
-import crypt
+import bcrypt
 import base64
 import yaml
 
@@ -172,8 +172,10 @@ def build_netplan_yaml(use_dhcp, static_ip, use_gateway, gateway,
 
 
 def hash_password(plain_password):
-    """Hash a plain password using SHA-512 crypt."""
-    return crypt.crypt(plain_password, crypt.mksalt(crypt.METHOD_SHA512))
+    """Hash a plain password using bcrypt."""
+    return bcrypt.hashpw(
+        plain_password.encode('utf-8'), bcrypt.gensalt()
+    ).decode('utf-8')
 
 
 def build_cloudinit_config(vm_hostname, vm_user_name, hashed_passwd,
