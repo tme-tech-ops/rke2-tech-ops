@@ -60,3 +60,8 @@ capabilities:
       concat:
         - get_attribute: [ ssh_keys, secret_key_name ]
         - "_private"
+
+  dap_endpoint:
+    description: DAP external infrastructure endpoint registration details
+    value:
+      get_attribute: [ register_infrastructure, dap_endpoint ]

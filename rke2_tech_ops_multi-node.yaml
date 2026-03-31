@@ -64,6 +64,8 @@ input_groups:
       - hide_log_output
       - debug
       - sa_namespace
+      - register_dap_infrastructure
+      - dap_endpoint_name
 
   control_plane_profile:
     display_label: Control Plane Profile

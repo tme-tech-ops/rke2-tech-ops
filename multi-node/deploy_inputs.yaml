@@ -496,6 +496,44 @@ inputs:
       group: adv_deploy
       index: 14
 
+  register_dap_infrastructure:
+    type: boolean
+    hidden: false
+    required: true
+    allow_update: false
+    display_label: Register as DAP Infrastructure
+    description: |
+      Register the RKE2 cluster as external Kubernetes infrastructure
+      in the Dell Automation Platform Orchestrator.
+    default: false
+    constraints:
+      - valid_values: [true, false]
+        error_message: Must be true or false.
+    display:
+      group: adv_deploy
+      index: 15
+
+  dap_endpoint_name:
+    type: string
+    hidden: false
+    required: true
+    allow_update: false
+    only_with: register_dap_infrastructure
+    display_label: DAP Endpoint Name
+    description: |
+      Human-readable name for the RKE2 cluster endpoint in the DAP
+      infrastructure inventory. Must be unique across all endpoints.
+    default: ""
+    constraints:
+      - pattern: '^[a-zA-Z0-9][a-zA-Z0-9._-]{0,253}[a-zA-Z0-9]$|^$'
+        error_message: |
+          Endpoint name must start and end with an alphanumeric character
+          and may contain letters, digits, dots, hyphens, and underscores.
+          Maximum 255 characters.
+    display:
+      group: adv_deploy
+      index: 16
+
 # Hidden Artifact
   binary_image_url:
     type: string

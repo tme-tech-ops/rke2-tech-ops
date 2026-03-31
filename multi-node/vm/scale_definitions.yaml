@@ -600,6 +600,28 @@ node_templates:
       - type: dell.relationships.depends_on
         target: ag_env_postcheck
 
+  register_infrastructure:
+    type: dell.nodes.ApplicationModule
+    interfaces:
+      dell.interfaces.lifecycle:
+        start:
+          implementation: multi-node/scripts/register_dap_endpoint.py
+          executor: central_deployment_agent
+          inputs:
+            register_dap_infrastructure: { get_input: register_dap_infrastructure }
+            dap_endpoint_name: { get_input: dap_endpoint_name }
+        stop:
+          implementation: multi-node/scripts/register_dap_endpoint.py
+          executor: central_deployment_agent
+          inputs:
+            register_dap_infrastructure: { get_input: register_dap_infrastructure }
+            dap_endpoint_name: { get_input: dap_endpoint_name }
+    relationships:
+      - type: dell.relationships.depends_on
+        target: cluster_results
+      - type: dell.relationships.depends_on
+        target: env_postcheck
+
 groups:
   add_cp_vm_group:
     members:
