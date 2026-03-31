@@ -1,0 +1,603 @@
+data_types:
+
+  # ==================== AG 5 Data Types ====================
+
+  ag_5_port_forward_rules:
+    properties:
+      host_ip:
+        type: string
+        default: CHANGE TO HOST IP OF NAT VIRTUAL NETWORK SEGMENT
+        required: false
+        description: Endpoint Host network IP where the NAT VNS resides
+      host_port:
+        type: string
+        required: false
+        description: Host tcp/udp port to advertise on
+      protocol:
+        type: string
+        required: false
+        description: Protocol ("TCP", "UDP")
+        constraints:
+          - valid_values: [ TCP, UDP ]
+      service_type:
+        type: string
+        required: false
+        description: Service Type ("SSH", "HTTP", "CUSTOM")
+        constraints:
+          - valid_values: [ SSH, HTTP, CUSTOM ]
+      vm_port:
+        type: string
+        required: false
+        description: VM tcp/udp Port to forward
+      vm_ip:
+        type: string
+        required: false
+        description: VM IP, only needed when static IP is defined for the VM
+
+  ag_5_vm_add_nics:
+    properties:
+      nic_name:
+        type: string
+        required: true
+        default: 'nic2'
+        description: >
+          A unique label for this NIC entry (e.g. "NIC 2").
+          Used to identify each NIC in the configuration list.
+        display:
+          index: 1
+          display_name: NIC Label
+      segment_name:
+        type: string
+        required: true
+        default: ''
+        description: >
+          Name of the Virtual Network Segment to attach this NIC to.
+          Must match a segment name configured on the NativeEdge Endpoint.
+        display:
+          index: 2
+          display_name: Segment Name
+      use_dhcp:
+        type: boolean
+        required: true
+        default: true
+        description: Use DHCP for this NIC. If false, static_ip is required.
+        display:
+          index: 3
+          display_name: Use DHCP
+      accept_dhcp_routes:
+        type: boolean
+        required: false
+        default: false
+        description: >
+          When DHCP is enabled, accept gateway and routes from the DHCP server.
+          Default is false (only the primary NIC's DHCP gateway is used).
+          Enable only if this NIC's DHCP-offered routes are needed.
+        display:
+          index: 4
+          display_name: Accept DHCP Routes
+      static_ip:
+        type: string
+        required: false
+        default: ''
+        description: >
+          Static IP Address and CIDR prefix (e.g. 192.168.0.100/24).
+          Required when Use DHCP is false.
+        display:
+          index: 5
+          display_name: Static IP/CIDR
+      use_gateway:
+        type: boolean
+        required: false
+        default: false
+        description: >
+          Configure a static route for this NIC.
+          Requires gateway and route_destination when enabled.
+        display:
+          index: 6
+          display_name: Use Gateway
+      gateway:
+        type: string
+        required: false
+        default: ''
+        description: Gateway IP address (e.g. 192.168.0.1).
+        display:
+          index: 7
+          display_name: Gateway IP
+      route_destination:
+        type: string
+        required: false
+        default: ''
+        description: >
+          Destination subnet in CIDR for static route (e.g. 10.20.0.0/16).
+          Required when Use Gateway is true. Do NOT use 0.0.0.0/0 --
+          only the primary NIC should have a default route.
+        display:
+          index: 8
+          display_name: Route Destination (CIDR)
+      use_dns:
+        type: boolean
+        required: false
+        default: false
+        description: Configure DNS servers for this NIC.
+        display:
+          index: 9
+          display_name: Use DNS
+      dns:
+        type: string
+        required: false
+        default: ''
+        description: >
+          Comma-separated list of DNS server IPs (e.g. 8.8.8.8,8.8.4.4).
+        display:
+          index: 10
+          display_name: DNS Servers
+      use_nat:
+        type: boolean
+        required: false
+        default: false
+        description: Enable NAT port forwarding for this NIC.
+        display:
+          index: 11
+          display_name: Enable NAT
+      port_forward_rules:
+        type: string
+        required: false
+        default: ''
+        description: >
+          JSON-formatted port forwarding rules as a string.
+          Example: [{"host_ip":"10.0.0.1","vm_port":"22","protocol":"TCP","host_port":"9999","service_type":"SSH"}]
+        display:
+          index: 12
+          display_name: Port Forward Rules (JSON)
+
+  ag_5_additional_disks:
+    properties:
+      name:
+        type: string
+        required: true
+        default: 'vdisk2'
+        description: Unique name to identify the virtual disk.
+        display:
+          index: 1
+          display_name: Name
+      disk:
+        type: string
+        required: true
+        default: '/DataStore0'
+        description: The /DataStore path where the virtual disk will be created.
+        display:
+          index: 2
+          display_name: Disk Path
+      storage:
+        type: integer
+        required: true
+        default: 16
+        description: The size of the virtual disk, specified as an integer value.
+        display:
+          index: 3
+          display_name: Storage Size
+      storage_unit:
+        type: string
+        required: true
+        default: 'GB'
+        description: The unit of measurement for the disk size. Supported values
+          [KB,MB,GB,TB,PB,EB,ZB,YB].
+        display:
+          index: 4
+          display_name: Storage Unit
+        constraints:
+          - valid_values: [ KB, MB, GB, TB, PB, EB, ZB, YB ]
+
+
+inputs:
+
+  # ==================== AG 5 ====================
+
+  ag_deployment_id_05:
+    type: deployment_id
+    hidden: false
+    allow_update: false
+    display_label: 'Endpoint location for Agent 5'
+    description: |
+      The Endpoint where the agent VM will be created.
+    constraints:
+    - labels:
+      - cloud: nativeedge
+    display:
+      group: add_agents
+      index: 500
+    required: false
+    only_with:
+      number_of_agent_nodes:
+      - 5
+      - 6
+
+  ag_5_name:
+    type: string
+    hidden: false
+    display_label: 'Agent 5 VM Name'
+    description: |
+      Name of the agent Virtual Machine
+    default: rke2-ag-05
+    display:
+      group: add_agents
+      index: 501
+    required: false
+    only_with:
+      number_of_agent_nodes:
+      - 5
+      - 6
+
+  ag_5_hostname:
+    type: string
+    hidden: false
+    display_label: 'Agent 5 Hostname'
+    description: |
+      Hostname of the agent Virtual Machine
+      Cannot contain characters other than:
+      letters (a-z, A-Z), numbers (0-9), or hyphens (-).
+      Can be up to 63 characters long.
+    constraints:
+    - pattern: ^(?!-)[a-zA-Z0-9-]{1,63}(?<!-)$
+      error_message: |
+        Must be letters (a-z, A-Z), numbers (0-9), or hyphens (-).
+        No more than 64 characters.
+    - max_length: 64
+      error_message: Hostname must be 64 characters or less.
+    default: rke2ag-05
+    display:
+      group: add_agents
+      index: 502
+    required: false
+    only_with:
+      number_of_agent_nodes:
+      - 5
+      - 6
+
+  ag_5_disk_wrapper:
+    type: string
+    hidden: false
+    display_label: 'Agent 5 DataStore Path'
+    required: true
+    allow_update: false
+    description: >
+      Deployment datastore path on target Endpoint. (i.e. /DataStore0)
+    constraints:
+      - valid_values:
+          jmespath:
+          - extra.hw_core.storage.dataStoreOrVolumes[?((((type=='SSD'||type=='HDD')&&name.contains(@,'DataStore'))||(shared&&name=='/Shared_DataStore'))&&status=='ONLINE')].mountPath
+          - get_inventory:
+              get_capability:
+              - get_input: ag_deployment_id_05
+              - ece_service_tag
+    display:
+      group: add_agents
+      index: 503
+    only_with:
+      number_of_agent_nodes:
+      - 5
+      - 6
+
+  ag_5_vnic_0_segment_name:
+    type: string
+    hidden: false
+    allow_update: true
+    required: true
+    display_label: 'Agent 5 Virtual Network Segment name for Primary Interface'
+    description: Name of the Virtual Network Segment.
+    constraints:
+    - valid_values:
+        jmespath:
+        - extra.hw_core.network.virtualSegment[?type=='NAT'||type=='BRIDGE'].name
+        - get_inventory:
+            get_capability:
+            - get_input: ag_deployment_id_05
+            - ece_service_tag
+    display:
+      group: add_agents
+      index: 504
+    only_with:
+      number_of_agent_nodes:
+      - 5
+      - 6
+
+  ag_5_use_dhcp:
+    type: boolean
+    hidden: false
+    display_label: 'Agent 5 Use DHCP'
+    description: |
+      If false, then static ip must be configured with optional DNS and Gateway.
+    default: true
+    display:
+      group: add_agents
+      index: 505
+    only_with:
+      number_of_agent_nodes:
+      - 5
+      - 6
+
+  ag_5_static_ip:
+    type: string
+    hidden: false
+    exclusive_with: ag_5_use_dhcp
+    display_label: 'Agent 5 Static IP in CIDR notation'
+    description: |
+      Static IP Address in CIDR notation that will be assigned to the VM
+      Example: 192.168.0.100/24
+    constraints:
+    - pattern: '^(?:((25[0-5]|2[0-4]\d|1\d\d|\d{1,2})(\.(25[0-5]|2[0-4]\d|1\d\d|\d{1,2})){3})\/(3[0-2]|[12]?\d)|)$'
+      error_message: |
+        Invalid format for IP Address in CIDR format.
+        Example: 172.16.0.1/16
+    required: false
+    display:
+      group: add_agents
+      index: 506
+
+  ag_5_use_gateway:
+    type: boolean
+    hidden: false
+    exclusive_with: ag_5_use_dhcp
+    display_label: 'Agent 5 Use Gateway'
+    description: |
+      If false, Gateway will not be configured
+    default: false
+    display:
+      group: add_agents
+      index: 507
+
+  ag_5_gateway:
+    type: string
+    hidden: false
+    only_with: ag_5_use_gateway
+    display_label: 'Agent 5 Gateway IP'
+    description: IP address of the default gateway.
+    required: false
+    constraints:
+    - pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$|^$
+      error_message: |
+        Invalid format for IP Address.
+        Example: 172.16.0.1
+    display:
+      group: add_agents
+      index: 508
+
+  ag_5_use_dns:
+    type: boolean
+    hidden: false
+    exclusive_with: ag_5_use_dhcp
+    display_label: 'Agent 5 Use DNS'
+    description: |
+      If false, DNS will not be configured
+    default: false
+    display:
+      group: add_agents
+      index: 509
+
+  ag_5_dns:
+    type: list
+    hidden: false
+    only_with: ag_5_use_dns
+    display_label: 'Agent 5 DNS Servers'
+    description: List of DNS servers to use.
+    required: false
+    default: []
+    display:
+      group: add_agents
+      index: 510
+
+  ag_5_use_nat:
+    type: boolean
+    hidden: false
+    display_label: 'Agent 5 Enable NAT Port Forwarding'
+    description: |
+      Enable to define NAT Port Forwarding rules (Only use with NAT Segment)
+    default: false
+    display:
+      group: add_agents
+      index: 511
+    only_with:
+      number_of_agent_nodes:
+      - 5
+      - 6
+
+  ag_5_port_forward_rules:
+    type: list
+    hidden: false
+    only_with: ag_5_use_nat
+    item_type: ag_5_port_forward_rules
+    description: |
+      Leave vm_ip blank and fill in host_ip, vm_port, protocol, host_port, and service_type
+      Example for SSH: {host_ip:IP_OF_NAT Interface,vm_port:22,protocol:TCP,host_port:9999,service_type:SSH}
+    required: false
+    display_label: 'Agent 5 Port Mapping'
+    default: []
+    display:
+      group: add_agents
+      index: 512
+
+  ag_5_add_nics:
+    type: boolean
+    hidden: false
+    display_label: 'Agent 5 Add Network Interfaces'
+    description: |
+      Check to add list of additional network interfaces
+    default: false
+    display:
+      group: add_agents
+      index: 513
+    only_with:
+      number_of_agent_nodes:
+      - 5
+      - 6
+
+  ag_5_vm_add_nics:
+    type: list
+    item_type: ag_5_vm_add_nics
+    hidden: false
+    allow_update: false
+    only_with: ag_5_add_nics
+    display_label: 'Agent 5 Additional Network Interfaces'
+    description: >
+      List of additional NICs (up to 9) beyond the primary NIC.
+      Each NIC requires a segment name and network configuration.
+    required: false
+    default: []
+    display:
+      group: add_agents
+      index: 514
+
+  ag_5_add_disks:
+    type: boolean
+    hidden: false
+    allow_update: false
+    display_label: 'Agent 5 Add Disks'
+    description: |
+      Check to add a list of additional disks
+    default: false
+    display:
+      group: add_agents
+      index: 515
+    only_with:
+      number_of_agent_nodes:
+      - 5
+      - 6
+
+  ag_5_additional_disks:
+    type: list
+    item_type: ag_5_additional_disks
+    hidden: false
+    allow_update: false
+    only_with: ag_5_add_disks
+    display_label: 'Agent 5 Optional list of additional Virtual Disks'
+    description: >
+      List of additional virtual disks to be created.
+    required: false
+    default: []
+    display:
+      group: add_agents
+      index: 516
+
+  ag_5_use_passthrough:
+    type: boolean
+    hidden: false
+    display_label: 'Agent 5 Enable device passthrough'
+    description: |
+      Uncheck to define usb, serial, gpu, video, and pcie devices for VM passthrough
+    default: false
+    display:
+      group: add_agents
+      index: 517
+    only_with:
+      number_of_agent_nodes:
+      - 5
+      - 6
+
+  ag_5_usb_wrapper:
+    type: list
+    item_type: string
+    hidden: false
+    only_with: ag_5_use_passthrough
+    allow_update: false
+    display_label: 'Agent 5 USB Device list'
+    description: >
+      A list of USB logical names (string). USB-1 to USB-10 for Passthrough.
+    required: false
+    constraints:
+    - valid_values:
+        jmespath:
+        - extra.hw_core.usbDevice[*].logicalName
+        - get_inventory:
+            get_capability:
+            - get_input: ag_deployment_id_05
+            - ece_service_tag
+    default: []
+    display:
+      group: add_agents
+      index: 518
+
+  ag_5_gpu_wrapper:
+    type: list
+    item_type: string
+    hidden: false
+    only_with: ag_5_use_passthrough
+    display_label: 'Agent 5 GPU Passthrough'
+    description: >
+      GPU passthrough. A list of GPU logical names (string). NVIDIA_A2-Slot1 to
+      NVIDIA_A2-Slot8, NVIDIA_A30-Slot1 to NVIDIA_A30-Slot8
+    required: false
+    constraints:
+    - valid_values:
+        jmespath:
+        - "extra.hw_core.pciDevice[?deviceType=='GPU'].logicalName"
+        - get_inventory:
+            get_capability:
+            - get_input: ag_deployment_id_05
+            - ece_service_tag
+    default: []
+    display:
+      group: add_agents
+      index: 519
+
+  ag_5_pcie_wrapper:
+    type: list
+    item_type: string
+    display_label: 'Agent 5 PCIe Passthrough'
+    hidden: false
+    only_with: ag_5_use_passthrough
+    description: >
+      PCIe passthrough. A list of PCIe logical names.
+    required: false
+    constraints:
+    - valid_values:
+        jmespath:
+        - extra.hw_core.pciDevice[*].logicalName
+        - get_inventory:
+            get_capability:
+            - get_input: ag_deployment_id_05
+            - ece_service_tag
+    default: []
+    display:
+      group: add_agents
+      index: 520
+
+  ag_5_video:
+    type: list
+    item_type: string
+    hidden: false
+    only_with: ag_5_use_passthrough
+    display_label: 'Agent 5 Video Passthrough'
+    description: >
+      Video passthrough. A list of Video logical names (string). E.g. 'Onboard
+      Controller'
+    required: false
+    constraints:
+    - valid_values:
+        - "onboard controller"
+    default: []
+    display:
+      group: add_agents
+      index: 521
+
+  ag_5_serial_port_wrapper:
+    type: list
+    item_type: string
+    hidden: false
+    only_with: ag_5_use_passthrough
+    allow_update: false
+    display_label: 'Agent 5 Serial Port'
+    description: |
+      Serial port passthrough. PORT_MODE format (e.g. COM-1_RS-232)
+    required: false
+    default: []
+    constraints:
+      - valid_values:
+          jmespath:
+          - '[extra.hw_core.serialPorts[*].{"port":logicalName,"mode":`RS-232`}[*].values(@).join(`_`,@)[],extra.hw_core.serialPorts[*].{"port":logicalName,"mode":`RS-422`}[*].values(@).join(`_`,@)[],extra.hw_core.serialPorts[*].{"port":logicalName,"mode":`RS-485`}[*].values(@).join(`_`,@)[]][]'
+          - get_inventory:
+              get_capability:
+              - get_input: ag_deployment_id_05
+              - ece_service_tag
+    display:
+      group: add_agents
+      index: 522
