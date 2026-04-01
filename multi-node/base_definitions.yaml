@@ -131,7 +131,7 @@ node_templates:
           implementation: multi-node/scripts/prepare_base_vm_config.py
           executor: central_deployment_agent
           inputs:
-            primary_segment: { get_input: cp_1_segment_name }
+            primary_segment: { get_input: cp_1_vnic_0_segment_name }
             vm_add_nics: { get_input: cp_1_vm_add_nics }
             use_dhcp: { get_input: cp_1_use_dhcp }
             static_ip: { get_input: cp_1_static_ip }
@@ -169,7 +169,7 @@ node_templates:
             cpu: { get_input: cp_vcpus }
             memory: { get_input: cp_memory_size }
             storage: { get_input: cp_os_disk_size }
-            disk: { get_input: cp_1_disk }
+            disk: { get_input: cp_1_disk_wrapper }
             disk_controller: { get_input: cp_disk_controller }
             hardware_options.vTPM: { get_input: hardware_options.vTPM }
             hardware_options.secure_boot: { get_input: hardware_options.secure_boot }
@@ -184,11 +184,11 @@ node_templates:
                 - "_private"
             vm_hostname: { get_input: cp_1_hostname }
             additional_disks: { get_input: cp_1_additional_disks }
-            usb: { get_input: cp_1_usb }
-            serial_port: { get_input: cp_1_serial_port }
-            gpu: { get_input: cp_1_gpu }
+            usb: { get_input: cp_1_usb_wrapper }
+            serial_port: { get_input: cp_1_serial_port_wrapper }
+            gpu: { get_input: cp_1_gpu_wrapper }
             video: { get_input: cp_1_video }
-            pcie: { get_input: cp_1_pcie }
+            pcie: { get_input: cp_1_pcie_wrapper }
             iso_files: { get_input: iso_files }
             boot_order: { get_input: boot_order }
     relationships:

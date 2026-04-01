@@ -335,65 +335,6 @@ inputs:
 
 ### Hidden Inputs ###
 
-# Hidden CP1 derivations
-  cp_1_usb:
-    type: list
-    item_type: string
-    hidden: true
-    allow_update: false
-    display_label: CP1 USB Device list
-    description: USB passthrough devices for CP1.
-    required: false
-    default: { get_input: cp_1_usb_wrapper }
-
-  cp_1_gpu:
-    type: list
-    item_type: string
-    hidden: true
-    allow_update: false
-    display_label: CP1 GPU Passthrough
-    description: GPU passthrough devices for CP1.
-    required: false
-    default: { get_input: cp_1_gpu_wrapper }
-
-  cp_1_pcie:
-    type: list
-    item_type: string
-    display_label: CP1 PCIe Passthrough
-    hidden: true
-    allow_update: false
-    description: PCIe passthrough devices for CP1.
-    required: false
-    default: { get_input: cp_1_pcie_wrapper }
-
-  cp_1_segment_name:
-    type: string
-    hidden: true
-    allow_update: false
-    required: true
-    display_label: CP1 Virtual Network Segment
-    description: Primary NIC segment name for CP1.
-    default: { get_input: cp_1_vnic_0_segment_name }
-
-  cp_1_disk:
-    type: string
-    display_label: CP1 Endpoint Datastore Path
-    allow_update: false
-    hidden: true
-    required: true
-    description: Datastore path for CP1.
-    default: { get_input: cp_1_disk_wrapper }
-
-  cp_1_serial_port:
-    type: list
-    item_type: string
-    hidden: true
-    allow_update: false
-    display_label: CP1 Serial Port
-    description: Serial port passthrough for CP1.
-    required: false
-    default: { get_input: cp_1_serial_port_wrapper }
-
 # Hidden system inputs
   enable_management:
     type: boolean
