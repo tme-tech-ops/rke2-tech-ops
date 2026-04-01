@@ -519,7 +519,7 @@ inputs:
     required: true
     allow_update: false
     only_with: register_dap_infrastructure
-    display_label: DAP Endpoint Name
+    display_label: External Infrastructure Name
     description: |
       Human-readable name for the RKE2 cluster endpoint in the DAP
       infrastructure inventory. Must be unique across all endpoints.
