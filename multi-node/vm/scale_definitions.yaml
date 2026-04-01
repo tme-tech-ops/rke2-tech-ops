@@ -610,6 +610,22 @@ node_templates:
           inputs:
             register_dap_infrastructure: { get_input: register_dap_infrastructure }
             dap_endpoint_name: { get_input: dap_endpoint_name }
+        poststart:
+          implementation: fabric.fabric_plugin.tasks.run_script
+          inputs:
+            script_path: multi-node/scripts/label_worker_nodes.sh
+            use_sudo: true
+            fabric_env:
+              host_string: { get_attribute: [base_vm, capabilities, vm_name_id] }
+              user: { get_input: cp_1_vm_user_name }
+              key: { get_secret: { get_attribute: [base_vm, capabilities, vm_ssh_private_key] } }
+              port: 22
+            hide_output: { get_input: hide_log_output }
+            proxy_settings:
+              auto_resolve: false
+              enable_socks5: false
+              target_id: { get_attribute: [base_vm, capabilities, proxy_target_id] }
+              target_ip: { get_attribute: [base_vm, capabilities, vm_name_id] }
         stop:
           implementation: multi-node/scripts/register_dap_endpoint.py
           executor: central_deployment_agent

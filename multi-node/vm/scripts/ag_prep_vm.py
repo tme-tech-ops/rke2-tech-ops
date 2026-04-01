@@ -292,7 +292,7 @@ if __name__ == "__main__":
 
     # Read per-VM inputs
     vm_name = inputs.get(f'{prefix}name', f'rke2-ag-{vm_number:02d}')
-    vm_hostname = inputs.get(f'{prefix}hostname', f'rke2ag-{vm_number:02d}')
+    vm_hostname = inputs.get(f'{prefix}hostname', f'rke2-ag-{vm_number:02d}')
     disk = inputs.get(f'{prefix}disk_wrapper', '/DataStore0')
 
     ctx.logger.info(

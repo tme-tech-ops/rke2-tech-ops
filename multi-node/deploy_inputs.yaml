@@ -523,7 +523,7 @@ inputs:
     description: |
       Human-readable name for the RKE2 cluster endpoint in the DAP
       infrastructure inventory. Must be unique across all endpoints.
-    default: ""
+    default: "rke2-cluster-01"
     constraints:
       - pattern: '^[a-zA-Z0-9][a-zA-Z0-9._-]{0,253}[a-zA-Z0-9]$|^$'
         error_message: |

@@ -252,7 +252,7 @@ inputs:
         No more than 64 characters.
     - max_length: 64
       error_message: Hostname must be 64 characters or less.
-    default: rke2ag-01
+    default: rke2-ag-01
     display:
       group: add_agents
       index: 102

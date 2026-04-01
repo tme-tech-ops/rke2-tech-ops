@@ -535,7 +535,7 @@ cp_3_dns:
 
 # AG1
 ag_1_name: rke2-ag-01
-ag_1_hostname: rke2ag-01
+ag_1_hostname: rke2-ag-01
 ag_1_disk_wrapper: /DataStore0
 ag_1_vnic_0_segment_name: my-bridge-segment
 ag_1_use_dhcp: false
@@ -548,7 +548,7 @@ ag_1_dns:
 
 # AG2
 ag_2_name: rke2-ag-02
-ag_2_hostname: rke2ag-02
+ag_2_hostname: rke2-ag-02
 ag_2_disk_wrapper: /DataStore0
 ag_2_vnic_0_segment_name: my-bridge-segment
 ag_2_use_dhcp: false
@@ -561,7 +561,7 @@ ag_2_dns:
 
 # AG3
 ag_3_name: rke2-ag-03
-ag_3_hostname: rke2ag-03
+ag_3_hostname: rke2-ag-03
 ag_3_disk_wrapper: /DataStore0
 ag_3_vnic_0_segment_name: my-bridge-segment
 ag_3_use_dhcp: false
