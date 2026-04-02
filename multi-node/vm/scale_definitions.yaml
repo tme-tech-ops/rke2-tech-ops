@@ -84,6 +84,7 @@ dsl_definitions:
         OFFLINE_BINARY_USER: { get_input: offline_binary_access_user }
         OFFLINE_BINARY_PASSWORD: { get_secret: { get_input: offline_binary_access_token } }
         SCRIPT_URL: { get_input: script_url }
+        TLS_SAN: { get_input: tls_san }
         REG_URL: { get_input: registry_url }
         REG_USER: { get_input: registry_access_user }
         REG_PASS: { concat: [ '"', { get_input: registry_password }, '"' ] }
