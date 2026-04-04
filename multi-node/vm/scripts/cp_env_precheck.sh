@@ -60,6 +60,12 @@ if [ -z "${JOIN_TOKEN:-}" ] || [ "${JOIN_TOKEN}" = "None" ]; then
     exit 1
 fi
 
+# Prefer TLS-SAN FQDN over raw IP when available
+if [ -n "${TLS_SAN:-}" ] && [ "${TLS_SAN}" != "None" ]; then
+    ctx logger info "TLS_SAN is set (${TLS_SAN}), using as JOIN_SERVER instead of ${JOIN_SERVER}."
+    JOIN_SERVER="${TLS_SAN}"
+fi
+
 # Assemble join server command
 INSTALL_CMD="join server ${JOIN_SERVER} ${JOIN_TOKEN}"
 
