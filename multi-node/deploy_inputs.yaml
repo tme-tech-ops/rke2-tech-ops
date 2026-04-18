@@ -278,6 +278,55 @@ inputs:
       group: basic_deploy
       index: 16
 
+  firmware_type::
+    type: string
+    hidden: false
+    required: true
+    allow_update: false
+    display_label: VM Firmware
+    description: |
+      Firmware type for all VMs. BIOS or UEFI.
+    default: BIOS
+    constraints:
+      - valid_values: [BIOS,UEFI]
+        error_message: Must be BIOS or UEFI.
+    display:
+      group: basic_deploy
+      index: 17
+
+  secure_boot:
+    type: boolean
+    hidden: false
+    required: false
+    allow_update: false
+    display_label: Secure Boot
+    description: |
+      Enable Secure Boot for all VMs. Requires UEFI firmware.
+    default: false
+    constraints:
+      - valid_values: [true, false]
+        error_message: Must be true or false.
+    display:
+      group: basic_deploy
+      index: 18
+
+  vtpm:
+    type: boolean
+    hidden: false
+    required: false
+    allow_update: false
+    display_label: Virtual TPM (vTPM)
+    description: |
+      Enable virtual Trusted Platform Module (vTPM) for all VMs.
+      Requires UEFI firmware.
+    default: false
+    constraints:
+      - valid_values: [true, false]
+        error_message: Must be true or false.
+    display:
+      group: basic_deploy
+      index: 19
+
 ### Advanced Deployment Configuration ###
 
   cni_type:

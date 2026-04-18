@@ -214,9 +214,9 @@ node_templates:
             storage: { get_attribute: [add_cp_prep_config, os_disk_size] }
             disk: { get_attribute: [add_cp_prep_config, disk] }
             disk_controller: { get_attribute: [add_cp_prep_config, disk_controller] }
-            hardware_options.vTPM: { get_input: hardware_options.vTPM }
-            hardware_options.secure_boot: { get_input: hardware_options.secure_boot }
-            hardware_options.firmware_type: { get_input: hardware_options.firmware_type }
+            hardware_options.vTPM: { get_input: vtpm }
+            hardware_options.secure_boot: { get_input: secure_boot }
+            hardware_options.firmware_type: { get_input: firmware_type }
             enable_management: { get_input: enable_management }
             network_settings: { get_attribute: [add_cp_prep_config, network_settings] }
             cloudinit: { get_attribute: [add_cp_prep_config, cloudinit_config] }
@@ -479,9 +479,9 @@ node_templates:
             storage: { get_attribute: [add_ag_prep_config, os_disk_size] }
             disk: { get_attribute: [add_ag_prep_config, disk] }
             disk_controller: { get_attribute: [add_ag_prep_config, disk_controller] }
-            hardware_options.vTPM: { get_input: ag_hardware_options.vTPM }
-            hardware_options.secure_boot: { get_input: ag_hardware_options.secure_boot }
-            hardware_options.firmware_type: { get_input: ag_hardware_options.firmware_type }
+            hardware_options.vTPM: { get_input: vtpm }
+            hardware_options.secure_boot: { get_input: secure_boot }
+            hardware_options.firmware_type: { get_input: firmware_type }
             enable_management: { get_input: enable_management }
             network_settings: { get_attribute: [add_ag_prep_config, network_settings] }
             cloudinit: { get_attribute: [add_ag_prep_config, cloudinit_config] }

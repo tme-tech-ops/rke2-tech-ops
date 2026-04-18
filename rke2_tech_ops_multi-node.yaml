@@ -43,6 +43,9 @@ input_groups:
       - registry_secret
       - registry_url
       - push_images
+      - firmware_type
+      - secure_boot
+      - vtpm
 
   adv_deploy:
     display_label: Advanced Deployment Configuration
@@ -163,9 +166,6 @@ input_groups:
       - ag_memory_size
       - ag_os_disk_size
       - ag_disk_controller
-      - ag_hardware_options.firmware_type
-      - ag_hardware_options.secure_boot
-      - ag_hardware_options.vTPM
 
   add_agents:
     display_label: Agent Node Details

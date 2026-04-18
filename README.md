@@ -92,6 +92,9 @@ These inputs appear in the **Basic Deployment Configuration** group.
 | Registry Authentication Secret | `registry_secret` | secret_key | -- | Registry auth secret (shown when registry is enabled) |
 | Registry URL | `registry_url` | string | `""` | Registry URL, e.g. `myregistry.lab:5000` (shown when registry is enabled) |
 | Push Images to Registry | `push_images` | boolean | `false` | Push RKE2 images to the private registry (shown when registry is enabled) |
+| VM Firmware | `firmware_type` | string | `BIOS` | Enable UEFI firmware for all VMs (default is BIOS) |
+| Secure Boot | `secure_boot` | boolean | `false` | Enable Secure Boot for all VMs (shown when UEFI is enabled) |
+| Virtual TPM (vTPM) | `vtpm` | boolean | `false` | Enable vTPM for all VMs (shown when UEFI is enabled) |
 
 ### Advanced Deployment Inputs
 
@@ -139,9 +142,6 @@ These inputs appear in the **Agent Node Profile** group and apply to all agent V
 | Agent Node Memory Size | `ag_memory_size` | string | `8GB` | Memory per agent VM |
 | Agent Node OS Disk Size | `ag_os_disk_size` | string | `100GB` | OS disk size per agent VM |
 | Agent Node Disk Controller | `ag_disk_controller` | string | `VIRTIO` | Disk controller: `VIRTIO`, `SATA`, or `SCSI` |
-| Agent Firmware Type | `ag_hardware_options.firmware_type` | string | `BIOS` | Agent VM firmware: `BIOS` or `UEFI` |
-| Agent Secure Boot | `ag_hardware_options.secure_boot` | boolean | `false` | Enable Secure Boot on agent VMs |
-| Agent Add vTPM | `ag_hardware_options.vTPM` | boolean | `false` | Enable vTPM on agent VMs |
 
 ### Per-Node Inputs
 

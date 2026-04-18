@@ -171,9 +171,9 @@ node_templates:
             storage: { get_input: cp_os_disk_size }
             disk: { get_input: cp_1_disk_wrapper }
             disk_controller: { get_input: cp_disk_controller }
-            hardware_options.vTPM: { get_input: hardware_options.vTPM }
-            hardware_options.secure_boot: { get_input: hardware_options.secure_boot }
-            hardware_options.firmware_type: { get_input: hardware_options.firmware_type }
+            hardware_options.vTPM: { get_input: vtpm }
+            hardware_options.secure_boot: { get_input: secure_boot }
+            hardware_options.firmware_type: { get_input: firmware_type }
             enable_management: { get_input: enable_management }
             network_settings: { get_attribute: [prep_config, network_settings] }
             cloudinit: { get_attribute: [prep_config, cloudinit_config] }
