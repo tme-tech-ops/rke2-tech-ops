@@ -278,7 +278,7 @@ inputs:
       group: basic_deploy
       index: 16
 
-  firmware_type::
+  firmware_type:
     type: string
     hidden: false
     required: true
