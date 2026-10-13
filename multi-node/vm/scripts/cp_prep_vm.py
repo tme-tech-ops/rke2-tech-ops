@@ -259,10 +259,21 @@ def build_cloudinit_config(vm_hostname, vm_user_name, hashed_vm_passwd,
     }
 
 
+def get_input(name, default):
+    """Return the operation input, falling back to default when unset.
+
+    Inputs hidden via only_with (e.g. vm_add_nics when add_nics is false)
+    can arrive as an explicit null, which dict.get() passes through
+    instead of using the default.
+    """
+    value = inputs.get(name)
+    return default if value is None else value
+
+
 if __name__ == "__main__":
-    ssh_public_key = inputs.get('ssh_public_key', '')
-    hashed_vm_passwd = inputs.get('hashed_vm_passwd', '')
-    vm_user_name = inputs.get('cp_1_vm_user_name', 'edgeuser')
+    ssh_public_key = get_input('ssh_public_key', '')
+    hashed_vm_passwd = get_input('hashed_vm_passwd', '')
+    vm_user_name = get_input('cp_1_vm_user_name', 'edgeuser')
 
     if hashed_vm_passwd:
         ctx.logger.info('Received hashed password from base VM configuration')
@@ -272,10 +283,10 @@ if __name__ == "__main__":
             'SSH password authentication may fail')
 
     # Hardware from profile
-    vcpus = inputs.get('cp_vcpus', 4)
-    memory_size = inputs.get('cp_memory_size', '8GB')
-    os_disk_size = inputs.get('cp_os_disk_size', '100GB')
-    disk_controller = inputs.get('cp_disk_controller', 'VIRTIO')
+    vcpus = get_input('cp_vcpus', 4)
+    memory_size = get_input('cp_memory_size', '8GB')
+    os_disk_size = get_input('cp_os_disk_size', '100GB')
+    disk_controller = get_input('cp_disk_controller', 'VIRTIO')
 
     my_index = get_instance_index()
     vm_number = my_index + 2  # index 0 = CP2, index 1 = CP3
@@ -299,9 +310,9 @@ if __name__ == "__main__":
     ece_service_tag = get_service_tag_from_deployment(client, deployment_id)
 
     # Read per-VM inputs
-    vm_name = inputs.get(f'{prefix}name', f'rke2-cp-{vm_number:02d}')
-    vm_hostname = inputs.get(f'{prefix}hostname', f'rke2cp-{vm_number:02d}')
-    disk = inputs.get(f'{prefix}disk_wrapper', '/DataStore0')
+    vm_name = get_input(f'{prefix}name', f'rke2-cp-{vm_number:02d}')
+    vm_hostname = get_input(f'{prefix}hostname', f'rke2cp-{vm_number:02d}')
+    disk = get_input(f'{prefix}disk_wrapper', '/DataStore0')
 
     ctx.logger.info(
         f"CP #{vm_number}: '{vm_name}' on endpoint '{ece_service_tag}'"
@@ -309,27 +320,27 @@ if __name__ == "__main__":
 
     # Build vm_config dict for network functions
     vm_config = {
-        'segment_name': inputs.get(f'{prefix}vnic_0_segment_name', ''),
-        'use_dhcp': inputs.get(f'{prefix}use_dhcp', True),
-        'static_ip': inputs.get(f'{prefix}static_ip', ''),
-        'use_gateway': inputs.get(f'{prefix}use_gateway', False),
-        'gateway': inputs.get(f'{prefix}gateway', ''),
-        'use_dns': inputs.get(f'{prefix}use_dns', False),
-        'dns': inputs.get(f'{prefix}dns', []),
-        'use_nat': inputs.get(f'{prefix}use_nat', False),
-        'port_forward_rules': inputs.get(f'{prefix}port_forward_rules', []),
+        'segment_name': get_input(f'{prefix}vnic_0_segment_name', ''),
+        'use_dhcp': get_input(f'{prefix}use_dhcp', True),
+        'static_ip': get_input(f'{prefix}static_ip', ''),
+        'use_gateway': get_input(f'{prefix}use_gateway', False),
+        'gateway': get_input(f'{prefix}gateway', ''),
+        'use_dns': get_input(f'{prefix}use_dns', False),
+        'dns': get_input(f'{prefix}dns', []),
+        'use_nat': get_input(f'{prefix}use_nat', False),
+        'port_forward_rules': get_input(f'{prefix}port_forward_rules', []),
     }
 
     # Read per-VM lists
-    my_add_nics = inputs.get(f'{prefix}vm_add_nics', [])
-    my_add_disks = inputs.get(f'{prefix}additional_disks', [])
+    my_add_nics = get_input(f'{prefix}vm_add_nics', [])
+    my_add_disks = get_input(f'{prefix}additional_disks', [])
 
     # Read passthrough devices
-    usb = inputs.get(f'{prefix}usb_wrapper', [])
-    gpu = inputs.get(f'{prefix}gpu_wrapper', [])
-    pcie = inputs.get(f'{prefix}pcie_wrapper', [])
-    video = inputs.get(f'{prefix}video', [])
-    serial_port = inputs.get(f'{prefix}serial_port_wrapper', [])
+    usb = get_input(f'{prefix}usb_wrapper', [])
+    gpu = get_input(f'{prefix}gpu_wrapper', [])
+    pcie = get_input(f'{prefix}pcie_wrapper', [])
+    video = get_input(f'{prefix}video', [])
+    serial_port = get_input(f'{prefix}serial_port_wrapper', [])
 
     ctx.logger.info(
         f"CP #{vm_number}: {len(my_add_nics)} additional NIC(s), "

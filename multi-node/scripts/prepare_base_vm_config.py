@@ -241,22 +241,33 @@ def deep_merge(base, override):
     return result
 
 
+def get_input(name, default):
+    """Return the operation input, falling back to default when unset.
+
+    Inputs hidden via only_with (e.g. cp_1_vm_add_nics when cp_1_add_nics
+    is false) can arrive as an explicit null, which dict.get() passes
+    through instead of using the default.
+    """
+    value = inputs.get(name)
+    return default if value is None else value
+
+
 if __name__ == "__main__":
     # Read inputs
-    primary_segment = inputs.get('primary_segment', '')
-    primary_port_forwards = inputs.get('primary_port_forwards', [])
-    vm_add_nics = inputs.get('vm_add_nics', [])
-    use_dhcp = inputs.get('use_dhcp', True)
-    static_ip = inputs.get('static_ip', '')
-    use_gateway = inputs.get('use_gateway', False)
-    gateway = inputs.get('gateway', '')
-    use_dns = inputs.get('use_dns', False)
-    dns = inputs.get('dns', '')
-    vm_hostname = inputs.get('vm_hostname', 'edgehost')
-    vm_user_name = inputs.get('vm_user_name', 'edgeuser')
-    vm_password = inputs.get('vm_password', '')
-    ssh_public_key = inputs.get('ssh_public_key', '')
-    cloudinit_override = inputs.get('cloudinit_override', {})
+    primary_segment = get_input('primary_segment', '')
+    primary_port_forwards = get_input('primary_port_forwards', [])
+    vm_add_nics = get_input('vm_add_nics', [])
+    use_dhcp = get_input('use_dhcp', True)
+    static_ip = get_input('static_ip', '')
+    use_gateway = get_input('use_gateway', False)
+    gateway = get_input('gateway', '')
+    use_dns = get_input('use_dns', False)
+    dns = get_input('dns', '')
+    vm_hostname = get_input('vm_hostname', 'edgehost')
+    vm_user_name = get_input('vm_user_name', 'edgeuser')
+    vm_password = get_input('vm_password', '')
+    ssh_public_key = get_input('ssh_public_key', '')
+    cloudinit_override = get_input('cloudinit_override', {})
 
     # 1. Build network settings
     network_settings = build_network_settings(

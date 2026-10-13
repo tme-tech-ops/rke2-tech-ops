@@ -83,9 +83,20 @@ def delete_endpoint(endpoint_id):
     return True
 
 
+def get_input(name, default):
+    """Return the operation input, falling back to default when unset.
+
+    Inputs hidden via only_with (e.g. dap_endpoint_name when
+    register_dap_infrastructure is false) can arrive as an explicit null,
+    which dict.get() passes through instead of using the default.
+    """
+    value = inputs.get(name)
+    return default if value is None else value
+
+
 def register():
     """Register the RKE2 cluster as DAP external infrastructure."""
-    register_flag = inputs.get('register_dap_infrastructure', False)
+    register_flag = get_input('register_dap_infrastructure', False)
     if not register_flag:
         ctx.logger.info(
             'register_dap_infrastructure is false, skipping registration.'
@@ -108,7 +119,7 @@ def register():
             f'bearer_token={bool(bearer_token)}'
         )
 
-    endpoint_name = inputs.get('dap_endpoint_name', '').strip() or dep_id
+    endpoint_name = get_input('dap_endpoint_name', '').strip() or dep_id
     description = f'RKE2 cluster: {endpoint_name} (deployment: {dep_id})'
 
     existing_id = find_existing_endpoint(endpoint_name)
