@@ -1,5 +1,94 @@
 dsl_definitions:
 
+  # As in base_definitions.yaml (anchors don't cross files).
+  no_drift: &no_drift
+    implementation: multi-node/scripts/no_drift.py
+    executor: central_deployment_agent
+
+  rke2_stop_inputs: &rke2_stop_inputs
+    script_path: multi-node/scripts/rke2_stop.sh
+    hide_output: { get_input: hide_log_output }
+
+  # The additional disks of agents 1-6, which an update can change. Each agent
+  # component picks its own entry by VM name (its prep node records the name at
+  # install), so an update sends the new disks straight from the inputs.
+  ag_vm_disks: &ag_vm_disks
+    - name: { get_input: ag_1_name }
+      add_disks: { get_input: ag_1_add_disks }
+      disks: { get_input: ag_1_additional_disks }
+    - name: { get_input: ag_2_name }
+      add_disks: { get_input: ag_2_add_disks }
+      disks: { get_input: ag_2_additional_disks }
+    - name: { get_input: ag_3_name }
+      add_disks: { get_input: ag_3_add_disks }
+      disks: { get_input: ag_3_additional_disks }
+    - name: { get_input: ag_4_name }
+      add_disks: { get_input: ag_4_add_disks }
+      disks: { get_input: ag_4_additional_disks }
+    - name: { get_input: ag_5_name }
+      add_disks: { get_input: ag_5_add_disks }
+      disks: { get_input: ag_5_additional_disks }
+    - name: { get_input: ag_6_name }
+      add_disks: { get_input: ag_6_add_disks }
+      disks: { get_input: ag_6_additional_disks }
+
+  update_checks: &update_checks
+    implementation: multi-node/scripts/update_checks.py
+    executor: central_deployment_agent
+    inputs:
+      control_planes: { get_input: number_of_control_plane }
+      agents: { get_input: number_of_agent_nodes }
+      cp_profile:
+        vcpus: { get_input: cp_vcpus }
+        memory: { get_input: cp_memory_size }
+        storage: { get_input: cp_os_disk_size }
+      vms:
+        - name: { get_input: cp_1_vm_name }
+          role: control_plane
+          storage: { get_input: cp_os_disk_size }
+          add_disks: { get_input: cp_1_add_disks }
+          disks: { get_input: cp_1_additional_disks }
+        - name: { get_input: cp_2_name }
+          role: control_plane
+          storage: { get_input: cp_os_disk_size }
+          add_disks: { get_input: cp_2_add_disks }
+          disks: { get_input: cp_2_additional_disks }
+        - name: { get_input: cp_3_name }
+          role: control_plane
+          storage: { get_input: cp_os_disk_size }
+          add_disks: { get_input: cp_3_add_disks }
+          disks: { get_input: cp_3_additional_disks }
+        - name: { get_input: ag_1_name }
+          role: agent
+          storage: { get_input: ag_os_disk_size }
+          add_disks: { get_input: ag_1_add_disks }
+          disks: { get_input: ag_1_additional_disks }
+        - name: { get_input: ag_2_name }
+          role: agent
+          storage: { get_input: ag_os_disk_size }
+          add_disks: { get_input: ag_2_add_disks }
+          disks: { get_input: ag_2_additional_disks }
+        - name: { get_input: ag_3_name }
+          role: agent
+          storage: { get_input: ag_os_disk_size }
+          add_disks: { get_input: ag_3_add_disks }
+          disks: { get_input: ag_3_additional_disks }
+        - name: { get_input: ag_4_name }
+          role: agent
+          storage: { get_input: ag_os_disk_size }
+          add_disks: { get_input: ag_4_add_disks }
+          disks: { get_input: ag_4_additional_disks }
+        - name: { get_input: ag_5_name }
+          role: agent
+          storage: { get_input: ag_os_disk_size }
+          add_disks: { get_input: ag_5_add_disks }
+          disks: { get_input: ag_5_additional_disks }
+        - name: { get_input: ag_6_name }
+          role: agent
+          storage: { get_input: ag_os_disk_size }
+          add_disks: { get_input: ag_6_add_disks }
+          disks: { get_input: ag_6_additional_disks }
+
   scale_shell_env: &scale_shell_env
     RKE2_VERSION: { get_input: rke2_version }
     CNI_TYPE: { get_input: cni_type }
@@ -26,12 +115,12 @@ dsl_definitions:
         OFFLINE_MODE: { get_input: offline_mode }
         OFFLINE_BINARY_URL: { get_input: offline_binary_url }
         OFFLINE_BINARY_USER: { get_input: offline_binary_access_user }
-        OFFLINE_BINARY_PASSWORD: { get_secret: { get_input: offline_binary_access_token } }
+        OFFLINE_BINARY_PASSWORD: { get_secret: [ { get_input: offline_binary_secret }, binary_image_access_token ] }
         SCRIPT_URL: { get_input: script_url }
         TLS_SAN: { get_input: tls_san }
         REG_URL: { get_input: registry_url }
         REG_USER: { get_input: registry_access_user }
-        REG_PASS: { concat: [ '"', { get_input: registry_password }, '"' ] }
+        REG_PASS: { concat: [ '"', { get_secret: [ { get_input: registry_secret }, password ] }, '"' ] }
         JOIN_SERVER: { get_attribute: [env_postcheck, capabilities, mgmt_ip] }
         JOIN_TOKEN: { get_attribute: [env_postcheck, capabilities, rke2_join_token] }
     fabric_env:
@@ -63,8 +152,6 @@ dsl_definitions:
 
   cp_run_install_cmds: &cp_run_install_cmds
     - concat: [ "sudo -E ./rke2_installer.sh ", { get_attribute: [ cp_env_precheck, capabilities, install_cmd ] } ]
-  cp_run_uninstall_cmds: &cp_run_uninstall_cmds
-    - "sudo -E ./rke2_installer.sh uninstall"
 
   cp_command_fabric_env: &cp_command_fabric_env
     shell_env:
@@ -82,12 +169,12 @@ dsl_definitions:
         OFFLINE_MODE: { get_input: offline_mode }
         OFFLINE_BINARY_URL: { get_input: offline_binary_url }
         OFFLINE_BINARY_USER: { get_input: offline_binary_access_user }
-        OFFLINE_BINARY_PASSWORD: { get_secret: { get_input: offline_binary_access_token } }
+        OFFLINE_BINARY_PASSWORD: { get_secret: [ { get_input: offline_binary_secret }, binary_image_access_token ] }
         SCRIPT_URL: { get_input: script_url }
         TLS_SAN: { get_input: tls_san }
         REG_URL: { get_input: registry_url }
         REG_USER: { get_input: registry_access_user }
-        REG_PASS: { concat: [ '"', { get_input: registry_password }, '"' ] }
+        REG_PASS: { concat: [ '"', { get_secret: [ { get_input: registry_secret }, password ] }, '"' ] }
         JOIN_SERVER: { get_attribute: [env_postcheck, capabilities, mgmt_ip] }
         JOIN_TOKEN: { get_attribute: [env_postcheck, capabilities, rke2_join_token] }
     fabric_env:
@@ -119,8 +206,6 @@ dsl_definitions:
 
   ag_run_install_cmds: &ag_run_install_cmds
     - concat: [ "sudo -E ./rke2_installer.sh ", { get_attribute: [ ag_env_precheck, capabilities, install_cmd ] } ]
-  ag_run_uninstall_cmds: &ag_run_uninstall_cmds
-    - "sudo -E ./rke2_installer.sh uninstall"
 
   ag_command_fabric_env: &ag_command_fabric_env
     shell_env:
@@ -189,12 +274,24 @@ node_templates:
             cp_3_pcie_wrapper: { get_input: cp_3_pcie_wrapper }
             cp_3_video: { get_input: cp_3_video }
             cp_3_serial_port_wrapper: { get_input: cp_3_serial_port_wrapper }
+        check_drift: *no_drift
     relationships:
       - type: dell.relationships.depends_on
         target: prep_config
       - type: dell.relationships.depends_on
         target: ssh_keys
 
+  # CP2-3 and agents 1-6 are deployments of the utility blueprint (see base_vm).
+  # Agents take their sizes from the Agent Node Profile, so a profile change
+  # reaches every agent, and their disks from ag_vm_disks. CP2-3 keep their
+  # install-time sizes and disks: they only exist with more than one control
+  # plane, where restarting control planes together would lose etcd quorum
+  # (the Endpoint restarts a VM for some disk changes too). CP1 is the only
+  # control plane whose disks can change, so one restarts at a time (see
+  # multi-node/scripts/update_checks.py). The rest is fixed at install (the
+  # prep nodes). Every utility input is sent, iso_files and
+  # boot_order included: the component compares the inputs it sends with all of
+  # the VM deployment's inputs, so a missing one is drift on every update.
   add_cp_vm:
     type: dell.nodes.ServiceComponent
     properties:
@@ -202,6 +299,7 @@ node_templates:
         blueprint:
           external_resource: true
           id: { get_input: utility_blueprint_id }
+          revision_id: { get_input: utility_blueprint_revision }
         deployment:
           display_name: { concat: ["utility-vm-", get_attribute: [add_cp_prep_config, vm_name]] }
           inputs:
@@ -232,6 +330,8 @@ node_templates:
             gpu: { get_attribute: [add_cp_prep_config, gpu] }
             video: { get_attribute: [add_cp_prep_config, video] }
             pcie: { get_attribute: [add_cp_prep_config, pcie] }
+            iso_files: { get_input: iso_files }
+            boot_order: { get_input: boot_order }
     relationships:
       - type: dell.relationships.depends_on
         target: add_cp_prep_config
@@ -248,10 +348,7 @@ node_templates:
           implementation: fabric.fabric_plugin.tasks.run_script
           inputs:
             <<: *cp_env_precheck_inputs
-        update:
-          implementation: fabric.fabric_plugin.tasks.run_script
-          inputs:
-            <<: *cp_env_precheck_inputs
+        check_drift: *no_drift
     relationships:
        - type: dell.relationships.depends_on
          target: add_cp_vm
@@ -275,32 +372,22 @@ node_templates:
             commands: *cp_run_install_cmds
             fabric_env:
               <<: *cp_command_fabric_env
-        update:
-          executor: central_deployment_agent
-          implementation: fabric.fabric_plugin.tasks.run_commands
-          inputs:
-            hide_output: { get_input: hide_log_output }
-            proxy_settings:
-              auto_resolve: false
-              enable_socks5: false
-              target_id: { get_attribute: [add_cp_vm, capabilities, proxy_target_id] }
-              target_ip: { get_attribute: [add_cp_vm, capabilities, vm_name_id] }
-            commands: *cp_run_install_cmds
-            fabric_env:
-              <<: *cp_command_fabric_env
+        check_drift: *no_drift
         stop:
           executor: central_deployment_agent
-          implementation: fabric.fabric_plugin.tasks.run_commands
+          implementation: fabric.fabric_plugin.tasks.run_script
           inputs:
-            hide_output: { get_input: hide_log_output }
+            <<: *rke2_stop_inputs
             proxy_settings:
               auto_resolve: false
               enable_socks5: false
               target_id: { get_attribute: [add_cp_vm, capabilities, proxy_target_id] }
               target_ip: { get_attribute: [add_cp_vm, capabilities, vm_name_id] }
-            commands: *cp_run_uninstall_cmds
             fabric_env:
-              <<: *cp_command_fabric_env
+              host_string: { get_attribute: [add_cp_vm, capabilities, vm_name_id] }
+              user: { get_input: cp_1_vm_user_name }
+              key: { get_secret: { get_attribute: [add_cp_vm, capabilities, vm_ssh_private_key] } }
+              port: 22
     relationships:
        - type: dell.relationships.depends_on
          target: cp_env_precheck
@@ -313,10 +400,7 @@ node_templates:
           implementation: fabric.fabric_plugin.tasks.run_script
           inputs:
             <<: *cp_env_postcheck_inputs
-        update:
-          implementation: fabric.fabric_plugin.tasks.run_script
-          inputs:
-            <<: *cp_env_postcheck_inputs
+        check_drift: *no_drift
     relationships:
        - type: dell.relationships.depends_on
          target: install_cp
@@ -352,6 +436,8 @@ node_templates:
             ag_1_gateway: { get_input: ag_1_gateway }
             ag_1_use_dns: { get_input: ag_1_use_dns }
             ag_1_dns: { get_input: ag_1_dns }
+            ag_1_use_nat: { get_input: ag_1_use_nat }
+            ag_1_port_forward_rules: { get_input: ag_1_port_forward_rules }
             ag_1_vm_add_nics: { get_input: ag_1_vm_add_nics }
             ag_1_additional_disks: { get_input: ag_1_additional_disks }
             ag_1_usb_wrapper: { get_input: ag_1_usb_wrapper }
@@ -371,6 +457,8 @@ node_templates:
             ag_2_gateway: { get_input: ag_2_gateway }
             ag_2_use_dns: { get_input: ag_2_use_dns }
             ag_2_dns: { get_input: ag_2_dns }
+            ag_2_use_nat: { get_input: ag_2_use_nat }
+            ag_2_port_forward_rules: { get_input: ag_2_port_forward_rules }
             ag_2_vm_add_nics: { get_input: ag_2_vm_add_nics }
             ag_2_additional_disks: { get_input: ag_2_additional_disks }
             ag_2_usb_wrapper: { get_input: ag_2_usb_wrapper }
@@ -390,6 +478,8 @@ node_templates:
             ag_3_gateway: { get_input: ag_3_gateway }
             ag_3_use_dns: { get_input: ag_3_use_dns }
             ag_3_dns: { get_input: ag_3_dns }
+            ag_3_use_nat: { get_input: ag_3_use_nat }
+            ag_3_port_forward_rules: { get_input: ag_3_port_forward_rules }
             ag_3_vm_add_nics: { get_input: ag_3_vm_add_nics }
             ag_3_additional_disks: { get_input: ag_3_additional_disks }
             ag_3_usb_wrapper: { get_input: ag_3_usb_wrapper }
@@ -409,6 +499,8 @@ node_templates:
             ag_4_gateway: { get_input: ag_4_gateway }
             ag_4_use_dns: { get_input: ag_4_use_dns }
             ag_4_dns: { get_input: ag_4_dns }
+            ag_4_use_nat: { get_input: ag_4_use_nat }
+            ag_4_port_forward_rules: { get_input: ag_4_port_forward_rules }
             ag_4_vm_add_nics: { get_input: ag_4_vm_add_nics }
             ag_4_additional_disks: { get_input: ag_4_additional_disks }
             ag_4_usb_wrapper: { get_input: ag_4_usb_wrapper }
@@ -428,6 +520,8 @@ node_templates:
             ag_5_gateway: { get_input: ag_5_gateway }
             ag_5_use_dns: { get_input: ag_5_use_dns }
             ag_5_dns: { get_input: ag_5_dns }
+            ag_5_use_nat: { get_input: ag_5_use_nat }
+            ag_5_port_forward_rules: { get_input: ag_5_port_forward_rules }
             ag_5_vm_add_nics: { get_input: ag_5_vm_add_nics }
             ag_5_additional_disks: { get_input: ag_5_additional_disks }
             ag_5_usb_wrapper: { get_input: ag_5_usb_wrapper }
@@ -447,6 +541,8 @@ node_templates:
             ag_6_gateway: { get_input: ag_6_gateway }
             ag_6_use_dns: { get_input: ag_6_use_dns }
             ag_6_dns: { get_input: ag_6_dns }
+            ag_6_use_nat: { get_input: ag_6_use_nat }
+            ag_6_port_forward_rules: { get_input: ag_6_port_forward_rules }
             ag_6_vm_add_nics: { get_input: ag_6_vm_add_nics }
             ag_6_additional_disks: { get_input: ag_6_additional_disks }
             ag_6_usb_wrapper: { get_input: ag_6_usb_wrapper }
@@ -454,6 +550,7 @@ node_templates:
             ag_6_pcie_wrapper: { get_input: ag_6_pcie_wrapper }
             ag_6_video: { get_input: ag_6_video }
             ag_6_serial_port_wrapper: { get_input: ag_6_serial_port_wrapper }
+        check_drift: *no_drift
     relationships:
       - type: dell.relationships.depends_on
         target: prep_config
@@ -467,6 +564,7 @@ node_templates:
         blueprint:
           external_resource: true
           id: { get_input: utility_blueprint_id }
+          revision_id: { get_input: utility_blueprint_revision }
         deployment:
           display_name: { concat: ["utility-vm-", get_attribute: [add_ag_prep_config, vm_name]] }
           inputs:
@@ -474,9 +572,9 @@ node_templates:
             name: { get_attribute: [add_ag_prep_config, vm_name] }
             image: { get_attribute: [binary_image, binary_details, extra, artifact_id] }
             os_type: { get_input: os_type }
-            cpu: { get_attribute: [add_ag_prep_config, vcpus] }
-            memory: { get_attribute: [add_ag_prep_config, memory_size] }
-            storage: { get_attribute: [add_ag_prep_config, os_disk_size] }
+            cpu: { get_input: ag_vcpus }
+            memory: { get_input: ag_memory_size }
+            storage: { get_input: ag_os_disk_size }
             disk: { get_attribute: [add_ag_prep_config, disk] }
             disk_controller: { get_attribute: [add_ag_prep_config, disk_controller] }
             hardware_options.vTPM: { get_input: vtpm }
@@ -491,12 +589,17 @@ node_templates:
                 - get_attribute: [ssh_keys, secret_key_name]
                 - "_private"
             vm_hostname: { get_attribute: [add_ag_prep_config, vm_hostname] }
-            additional_disks: { get_attribute: [add_ag_prep_config, additional_disks] }
+            additional_disks:
+              jmespath:
+                - concat: ["[?name=='", { get_attribute: [add_ag_prep_config, vm_name] }, "'] | [0] | (add_disks && disks[].{name: name, disk: disk, storage: storage, storage_unit: storage_unit || 'GB'}) || `[]`"]
+                - *ag_vm_disks
             usb: { get_attribute: [add_ag_prep_config, usb] }
             serial_port: { get_attribute: [add_ag_prep_config, serial_port] }
             gpu: { get_attribute: [add_ag_prep_config, gpu] }
             video: { get_attribute: [add_ag_prep_config, video] }
             pcie: { get_attribute: [add_ag_prep_config, pcie] }
+            iso_files: { get_input: iso_files }
+            boot_order: { get_input: boot_order }
     relationships:
       - type: dell.relationships.depends_on
         target: add_ag_prep_config
@@ -513,10 +616,7 @@ node_templates:
           implementation: fabric.fabric_plugin.tasks.run_script
           inputs:
             <<: *ag_env_precheck_inputs
-        update:
-          implementation: fabric.fabric_plugin.tasks.run_script
-          inputs:
-            <<: *ag_env_precheck_inputs
+        check_drift: *no_drift
     relationships:
        - type: dell.relationships.depends_on
          target: add_ag_vm
@@ -540,32 +640,22 @@ node_templates:
             commands: *ag_run_install_cmds
             fabric_env:
               <<: *ag_command_fabric_env
-        update:
-          executor: central_deployment_agent
-          implementation: fabric.fabric_plugin.tasks.run_commands
-          inputs:
-            hide_output: { get_input: hide_log_output }
-            proxy_settings:
-              auto_resolve: false
-              enable_socks5: false
-              target_id: { get_attribute: [add_ag_vm, capabilities, proxy_target_id] }
-              target_ip: { get_attribute: [add_ag_vm, capabilities, vm_name_id] }
-            commands: *ag_run_install_cmds
-            fabric_env:
-              <<: *ag_command_fabric_env
+        check_drift: *no_drift
         stop:
           executor: central_deployment_agent
-          implementation: fabric.fabric_plugin.tasks.run_commands
+          implementation: fabric.fabric_plugin.tasks.run_script
           inputs:
-            hide_output: { get_input: hide_log_output }
+            <<: *rke2_stop_inputs
             proxy_settings:
               auto_resolve: false
               enable_socks5: false
               target_id: { get_attribute: [add_ag_vm, capabilities, proxy_target_id] }
               target_ip: { get_attribute: [add_ag_vm, capabilities, vm_name_id] }
-            commands: *ag_run_uninstall_cmds
             fabric_env:
-              <<: *ag_command_fabric_env
+              host_string: { get_attribute: [add_ag_vm, capabilities, vm_name_id] }
+              user: { get_input: cp_1_vm_user_name }
+              key: { get_secret: { get_attribute: [add_ag_vm, capabilities, vm_ssh_private_key] } }
+              port: 22
     relationships:
        - type: dell.relationships.depends_on
          target: ag_env_precheck
@@ -578,14 +668,13 @@ node_templates:
           implementation: fabric.fabric_plugin.tasks.run_script
           inputs:
             <<: *ag_env_postcheck_inputs
-        update:
-          implementation: fabric.fabric_plugin.tasks.run_script
-          inputs:
-            <<: *ag_env_postcheck_inputs
+        check_drift: *no_drift
     relationships:
        - type: dell.relationships.depends_on
          target: install_ag
 
+  # Aggregates the cluster's VMs. Runs again after an update that changed a VM,
+  # so the capabilities follow the VMs.
   cluster_results:
     type: dell.nodes.ApplicationModule
     interfaces:
@@ -593,7 +682,16 @@ node_templates:
         start:
           implementation: multi-node/scripts/collect_cluster_results.py
           executor: central_deployment_agent
+        update:
+          implementation: multi-node/scripts/collect_cluster_results.py
+          executor: central_deployment_agent
     relationships:
+      - type: dell.relationships.depends_on
+        target: base_vm
+      - type: dell.relationships.depends_on
+        target: add_cp_vm
+      - type: dell.relationships.depends_on
+        target: add_ag_vm
       - type: dell.relationships.depends_on
         target: env_postcheck
       - type: dell.relationships.depends_on
@@ -611,6 +709,7 @@ node_templates:
           inputs:
             register_dap_infrastructure: { get_input: register_dap_infrastructure }
             dap_endpoint_name: { get_input: dap_endpoint_name }
+        check_drift: *no_drift
         poststart:
           implementation: fabric.fabric_plugin.tasks.run_script
           inputs:
@@ -638,6 +737,20 @@ node_templates:
         target: cluster_results
       - type: dell.relationships.depends_on
         target: env_postcheck
+
+  # Makes an update the VMs must not take (a smaller disk, or a control plane
+  # profile change with more than one control plane) fail with the reason,
+  # while the VMs stay as they are. See multi-node/scripts/update_checks.py.
+  update_checks:
+    type: dell.nodes.Root
+    interfaces:
+      dell.interfaces.lifecycle:
+        create: *update_checks
+        check_drift: *update_checks
+        update: *update_checks
+    relationships:
+      - type: dell.relationships.depends_on
+        target: prep_config
 
 groups:
   add_cp_vm_group:

@@ -16,22 +16,13 @@ inputs:
   #     group: deployment_target
   #     index: 1
 
-  ssh_user_private_key:
-    type: secret_key
-    hidden: true
-    allow_update: false
-    required: false
-    display_label: SSH Private Key Secret from the edge-cloud-init deployment
-    description: |
-      Name of the SSH private key secret in the secret store for the VM user
-
 # RKE2 Cluster Configuration Inputs
 
   rke2_version:
     type: string
     hidden: false
     required: true
-    allow_update: true
+    allow_update: false
     display_label: RKE2 Version
     description: |
       RKE2 Kubernetes version to install
@@ -55,6 +46,7 @@ inputs:
         - "canal"
         - "cilium"
         - "none"
+        error_message: Must be calico, canal, cilium, or none.
     display:
       group: rke2_config
       index: 5
@@ -107,6 +99,9 @@ inputs:
     description: |
       Maximum number of pods per node
     default: 110
+    constraints:
+      - in_range: [10, 500]
+        error_message: Must be between 10 and 500.
     display:
       group: rke2_config
       index: 25
@@ -154,7 +149,7 @@ inputs:
     type: string
     hidden: false
     required: true
-    allow_update: true
+    allow_update: false
     display_label: Local Path Provisioner Version
     description: |
       Version of the local-path-provisioner to install
@@ -251,7 +246,7 @@ inputs:
     type: string
     hidden: false
     required: true
-    allow_update: true
+    allow_update: false
     display_label: Velero Version
     description: |
       Velero backup tool version
@@ -264,7 +259,7 @@ inputs:
     type: string
     hidden: false
     required: true
-    allow_update: true
+    allow_update: false
     display_label: Velero AWS Plugin Version
     description: |
       Velero AWS S3-compatible plugin version
@@ -277,7 +272,7 @@ inputs:
     type: string
     hidden: false
     required: false
-    allow_update: true
+    allow_update: false
     display_label: Velero S3 Endpoint URL
     description: |
       S3-compatible endpoint URL for Velero backups (e.g. https://s3.example.com:8333).
@@ -291,7 +286,7 @@ inputs:
     type: string
     hidden: false
     required: false
-    allow_update: true
+    allow_update: false
     display_label: Velero S3 Access Key
     description: |
       S3 access key for Velero backup storage
@@ -304,7 +299,7 @@ inputs:
     type: string
     hidden: false
     required: false
-    allow_update: true
+    allow_update: false
     display_label: Velero S3 Secret Key
     description: |
       S3 secret key for Velero backup storage
@@ -317,7 +312,7 @@ inputs:
     type: string
     hidden: false
     required: true
-    allow_update: true
+    allow_update: false
     display_label: Velero S3 Bucket
     description: |
       S3 bucket name for Velero backup storage
@@ -330,7 +325,7 @@ inputs:
     type: string
     hidden: false
     required: true
-    allow_update: true
+    allow_update: false
     display_label: Velero Backup Namespaces
     description: |
       Comma-separated list of namespaces to back up
@@ -343,7 +338,7 @@ inputs:
     type: string
     hidden: false
     required: true
-    allow_update: true
+    allow_update: false
     display_label: Velero Backup Schedule
     description: |
       Cron schedule for daily backups
@@ -356,7 +351,7 @@ inputs:
     type: string
     hidden: false
     required: true
-    allow_update: true
+    allow_update: false
     display_label: Velero Backup TTL
     description: |
       Backup retention period
@@ -369,7 +364,7 @@ inputs:
     type: string
     hidden: false
     required: true
-    allow_update: true
+    allow_update: false
     display_label: VolumeSnapshotClass Name
     description: |
       VolumeSnapshotClass name for Longhorn CSI snapshots
@@ -382,7 +377,7 @@ inputs:
     type: string
     hidden: false
     required: true
-    allow_update: true
+    allow_update: false
     display_label: VolumeSnapshotClass Driver
     description: |
       CSI driver name for the VolumeSnapshotClass
@@ -395,7 +390,7 @@ inputs:
     type: boolean
     hidden: false
     required: true
-    allow_update: true
+    allow_update: false
     display_label: Push/Save Velero Images
     description: |
       Allow saving and pushing velero images to private registry during push operations
@@ -410,7 +405,7 @@ inputs:
     type: string
     hidden: false
     required: false
-    allow_update: true
+    allow_update: false
     display_label: Monitoring Host
     description: |
       IP/FQDN of external monitoring Docker host (Loki + Grafana + Prometheus).
@@ -429,6 +424,9 @@ inputs:
     description: |
       Loki HTTP port on the monitoring host
     default: 3100
+    constraints:
+      - in_range: [1, 65535]
+        error_message: Must be a port number (1-65535).
     display:
       group: monitoring_config
       index: 5
@@ -442,6 +440,9 @@ inputs:
     description: |
       Prometheus remote-write receiver port on the monitoring host
     default: 9090
+    constraints:
+      - in_range: [1, 65535]
+        error_message: Must be a port number (1-65535).
     display:
       group: monitoring_config
       index: 10
@@ -463,7 +464,7 @@ inputs:
     type: string
     hidden: false
     required: true
-    allow_update: true
+    allow_update: false
     display_label: Kube Prometheus Stack Version
     description: |
       Helm chart version for kube-prometheus-stack
@@ -476,7 +477,7 @@ inputs:
     type: string
     hidden: false
     required: true
-    allow_update: true
+    allow_update: false
     display_label: Fluent Bit Chart Version
     description: |
       Helm chart version for Fluent Bit
@@ -489,7 +490,7 @@ inputs:
     type: string
     hidden: false
     required: true
-    allow_update: true
+    allow_update: false
     display_label: Fluent Bit Version
     description: |
       Fluent Bit application/image version
@@ -502,7 +503,7 @@ inputs:
     type: string
     hidden: false
     required: true
-    allow_update: true
+    allow_update: false
     display_label: Helm Version
     description: |
       Helm version to install if not already present
@@ -515,7 +516,7 @@ inputs:
     type: string
     hidden: false
     required: true
-    allow_update: true
+    allow_update: false
     display_label: Prometheus Retention
     description: |
       In-cluster Prometheus data retention period
@@ -528,7 +529,7 @@ inputs:
     type: string
     hidden: false
     required: true
-    allow_update: true
+    allow_update: false
     display_label: Prometheus Storage Size
     description: |
       PVC size for in-cluster Prometheus
@@ -541,7 +542,7 @@ inputs:
     type: string
     hidden: false
     required: true
-    allow_update: true
+    allow_update: false
     display_label: Prometheus Storage Class
     description: |
       StorageClass for Prometheus and Alertmanager PVCs
@@ -554,7 +555,7 @@ inputs:
     type: string
     hidden: false
     required: false
-    allow_update: true
+    allow_update: false
     display_label: Monitor Exclude Namespaces
     description: |
       Space-separated list of namespaces to skip during ServiceMonitor auto-discovery
@@ -567,7 +568,7 @@ inputs:
     type: string
     hidden: false
     required: false
-    allow_update: true
+    allow_update: false
     display_label: Monitor Port Names
     description: |
       Space-separated port names treated as Prometheus metrics endpoints
@@ -580,7 +581,7 @@ inputs:
     type: string
     hidden: false
     required: false
-    allow_update: true
+    allow_update: false
     display_label: Monitor Configs Directory
     description: |
       Optional directory of additional ServiceMonitor YAML files to apply
@@ -593,7 +594,7 @@ inputs:
     type: boolean
     hidden: false
     required: true
-    allow_update: true
+    allow_update: false
     display_label: Push/Save Monitoring Images
     description: |
       Allow saving and pushing monitoring images to private registry during push operations
@@ -607,7 +608,7 @@ inputs:
   offline_mode:
     type: boolean
     hidden: false
-    allow_update: true
+    allow_update: false
     display_label: Airgapped Mode
     description: |
       Set to true to download and install from specified offline package
@@ -620,13 +621,14 @@ inputs:
     type: secret_key
     hidden: false
     only_with: offline_mode
-    allow_update: true
+    allow_update: false
     display_label: Offline Binary Configuration Secret
     description: |
       Secret containing url, username, access_token, and
       version of the offline archive binary.
     constraints:
     - type: binary_configuration
+      error_message: Select a secret of type binary_configuration.
     display:
       group: env_config
       index: 5
@@ -635,7 +637,7 @@ inputs:
     type: secret_key
     hidden: false
     required: false
-    allow_update: true
+    allow_update: false
     display_label: Registry Authentication Secret
     description: |
       Secret containing the username and password for a local container registry.
@@ -643,6 +645,7 @@ inputs:
       a local registry, or when installing from a local registry in offline mode.
     constraints:
     - type: basic_auth_credentials
+      error_message: Select a secret of type basic_auth_credentials.
     display:
       group: env_config
       index: 7
@@ -651,7 +654,7 @@ inputs:
     type: string
     hidden: false
     required: false
-    allow_update: true
+    allow_update: false
     display_label: Registry URL
     description: |
       URL of the local container registry (e.g. myregistry.lab:5000)
@@ -669,7 +672,7 @@ inputs:
     type: string
     hidden: false
     exclusive_with: offline_mode
-    allow_update: true
+    allow_update: false
     display_label: Install Task
     description: |
       Select the operation to perform:
@@ -692,6 +695,7 @@ inputs:
         - "save"
         - "push"
         - "join"
+        error_message: Select one of the listed tasks.
     display:
       group: env_config
       index: 10
@@ -700,7 +704,7 @@ inputs:
     type: string
     hidden: false
     required: false
-    allow_update: true
+    allow_update: false
     display_label: Join Mode
     description: |
       Join type when using the 'join' run task. Must be 'server' or 'agent'.
@@ -710,6 +714,7 @@ inputs:
         - ""
         - "server"
         - "agent"
+        error_message: Must be server or agent.
     display:
       group: env_config
       index: 11
@@ -718,7 +723,7 @@ inputs:
     type: string
     hidden: false
     required: false
-    allow_update: true
+    allow_update: false
     display_label: Join Server FQDN/IP
     description: |
       FQDN or IP of the RKE2 server to join. Required when run_arg is 'join'.
@@ -731,7 +736,7 @@ inputs:
     type: string
     hidden: false
     required: false
-    allow_update: true
+    allow_update: false
     display_label: Join Token
     description: |
       Cluster join token from the RKE2 server. Required when run_arg is 'join'.
@@ -744,11 +749,15 @@ inputs:
     type: string
     hidden: false
     exclusive_with: offline_mode
-    allow_update: true
+    allow_update: false
     display_label: Script URL
-    description: |
-      URL of the script to be executed
-    default: "https://github.com/Chubtoad5/rke2-installer/raw/refs/heads/main/rke2_installer.sh"
+    description: >
+      URL of the RKE2 installer script (rke2_installer.sh). The default is the
+      installer commit this release was tested with.
+    default: "https://github.com/Chubtoad5/rke2-installer/raw/0e066ba458b53a02ff860f8b99bf8625d4560031/rke2_installer.sh"
+    constraints:
+      - pattern: '^https?://\S+/rke2_installer\.sh$'
+        error_message: Enter the URL of rke2_installer.sh.
     display:
       group: env_config
       index: 15
@@ -756,7 +765,7 @@ inputs:
   upload_package:
     type: boolean
     hidden: false
-    allow_update: true
+    allow_update: false
     display_label: Upload save package
     description: |
       Only for the 'save' install task. Uploads the offline archive to a file server after creation.
@@ -769,20 +778,22 @@ inputs:
     type: secret_key
     hidden: false
     only_with: upload_package
-    allow_update: true
+    allow_update: false
     display_label: Upload URL location
     description: |
       Binary configuration secret pointing to the upload location (i.e. https://myfilerserver.lab/upload_dir/).
     constraints:
     - type: binary_configuration
+      error_message: Select a secret of type binary_configuration.
     display:
       group: env_config
       index: 25
 
   hide_log_output:
     type: list
+    item_type: string
     hidden: false
-    allow_update: true
+    allow_update: false
     display_label: Log Output to hide
     description: |
       stdout hides standard output, stderr hides standard error, both hides both
@@ -792,6 +803,7 @@ inputs:
         - "both"
         - "stdout"
         - "stderr"
+        error_message: Must be both, stdout, or stderr.
     display:
       group: env_config
       index: 30
@@ -800,11 +812,14 @@ inputs:
     type: integer
     hidden: false
     required: true
-    allow_update: true
+    allow_update: false
     display_label: Debug Logging
     description: |
       Set to 0 or 1 to enable or disable debug logging
     default: 1
+    constraints:
+      - valid_values: [0, 1]
+        error_message: Must be 0 or 1.
     display:
       group: env_config
       index: 35
@@ -825,6 +840,7 @@ inputs:
 
   offline_binary_access_user:
     type: string
+    allow_update: false
     hidden: true
     display_label: Offline Binary Username
     description: |
@@ -834,29 +850,6 @@ inputs:
       get_secret:
       - get_input: offline_binary_secret
       - binary_image_access_user
-
-  offline_binary_access_token:
-    type: list
-    hidden: true
-    display_label: Offline Binary Access Token
-    description: |
-      Name of the secret storing the Token to the Repository of the
-      Image Binary that will be used to create the Virtual Machine.
-    default:
-    - get_input: offline_binary_secret
-    - binary_image_access_token
-
-  offline_binary_version:
-    type: string
-    hidden: true
-    display_label: Offline Binary Version
-    description: |
-      Ofline binary version that will be used to create
-      the Virtual Machine.
-    default:
-      get_secret:
-      - get_input: offline_binary_secret
-      - binary_image_version
 
   upload_binary_url:
     type: string
@@ -873,6 +866,7 @@ inputs:
 
   upload_binary_access_user:
     type: string
+    allow_update: false
     hidden: true
     display_label: Upload Binary Username
     description: |
@@ -883,31 +877,9 @@ inputs:
       - get_input: upload_binary_secret
       - binary_image_access_user
 
-  upload_binary_access_token:
-    type: list
-    hidden: true
-    display_label: Upload Binary Access Token
-    description: |
-      Name of the secret storing the Token to the Repository of the
-      Image Binary that will be used to create the Virtual Machine.
-    default:
-    - get_input: upload_binary_secret
-    - binary_image_access_token
-
-  upload_binary_version:
-    type: string
-    hidden: true
-    display_label: Upload Binary Version
-    description: |
-      Ofline binary version that will be used to create
-      the Virtual Machine.
-    default:
-      get_secret:
-      - get_input: upload_binary_secret
-      - binary_image_version
-
   registry_access_user:
     type: string
+    allow_update: false
     hidden: true
     display_label: Registry Username
     description: |
@@ -916,14 +888,3 @@ inputs:
       get_secret:
       - get_input: registry_secret
       - username
-
-  registry_password:
-    type: string
-    hidden: true
-    display_label: Registry Password
-    description: |
-      Password for the local container registry derived from registry_secret.
-    default:
-      get_secret:
-      - get_input: registry_secret
-      - password

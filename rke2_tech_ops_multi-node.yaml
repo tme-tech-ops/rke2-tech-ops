@@ -1,10 +1,16 @@
 tosca_definitions_version: dell_1_1
 
 description: >
-  This blueprint creates a Virtual Machine on a NativeEdge Endpoint and provides the VM login details.
+  This blueprint creates an RKE2 Kubernetes cluster (1 or 3 control planes and up to 6 agents)
+  on NativeEdge Endpoints. Each node is an edge-cloudinit-utility-vm VM; the cluster is
+  installed with rke2_installer.sh. Updates resize the VMs and their disks; the cluster
+  settings are fixed at install.
 
 imports:
   - dell/types/types.yaml
+  - plugin:edge-plugin?version= >=3.3.17.0,<4.0.0.0
+  - plugin:utilities-plugin?version= >=3.1.4.0,<4.0.0.0
+  - plugin:fabric-plugin?version= >=3.4.2.0,<4.0.0.0
   - multi-node/base_definitions.yaml
   - multi-node/deploy_inputs.yaml
   - multi-node/capabilities.yaml
@@ -63,6 +69,7 @@ input_groups:
       - offline_binary_secret
       - enable_cis
       - utility_blueprint_id
+      - utility_blueprint_revision
       - script_url
       - hide_log_output
       - debug
@@ -317,10 +324,10 @@ labels:
       - tme-tech-ops
   solution:
     values:
-      - edge-cloud-init
+      - rke2-tech-ops
   version:
     values:
-      - "4.1.0.0"
+      - "1.2.0.0"
 
 blueprint_labels:
   env:

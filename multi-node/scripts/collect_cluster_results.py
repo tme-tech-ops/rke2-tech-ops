@@ -2,6 +2,25 @@ from nativeedge import ctx
 from nativeedge.manager import get_rest_client
 
 
+def child_capabilities(client, inst):
+    """The VM deployment's current capabilities.
+
+    The component's own copy (runtime property 'capabilities') is written at
+    install and not refreshed by an update, so read the child directly and fall
+    back to the copy if that fails.
+    """
+    caps = inst.runtime_properties.get('capabilities', {}) or {}
+    child_id = (inst.runtime_properties.get('deployment') or {}).get('id')
+    if child_id:
+        try:
+            caps = client.deployments.capabilities.get(child_id).get(
+                'capabilities') or caps
+        except Exception as err:
+            ctx.logger.warning(
+                f"Capabilities of {child_id} not readable ({err}); using the copy")
+    return caps
+
+
 def build_vm_entry(caps):
     """Build a standardized VM result dict from ServiceComponent capabilities."""
     return {
@@ -30,7 +49,7 @@ if __name__ == "__main__":
     )
     cp1_vm = {}
     for inst in base_instances:
-        caps = inst.runtime_properties.get('capabilities', {})
+        caps = child_capabilities(client, inst)
         vm_name = caps.get('vm_name', '')
         if vm_name:
             cp1_vm = build_vm_entry(caps)
@@ -70,7 +89,7 @@ if __name__ == "__main__":
         )
 
         for i, inst in enumerate(sorted_cp_vms):
-            caps = inst.runtime_properties.get('capabilities', {})
+            caps = child_capabilities(client, inst)
             vm_name = caps.get('vm_name', '')
             entry = build_vm_entry(caps)
             entry['vm_name'] = vm_name
@@ -101,7 +120,7 @@ if __name__ == "__main__":
         )
 
         for i, inst in enumerate(sorted_ag_vms):
-            caps = inst.runtime_properties.get('capabilities', {})
+            caps = child_capabilities(client, inst)
             vm_name = caps.get('vm_name', '')
             entry = build_vm_entry(caps)
             entry['vm_name'] = vm_name

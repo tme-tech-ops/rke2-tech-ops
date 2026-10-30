@@ -1,6 +1,7 @@
 import json
 import bcrypt
 import base64
+import hashlib
 import yaml
 
 from nativeedge import ctx
@@ -171,11 +172,22 @@ def build_netplan_yaml(use_dhcp, static_ip, use_gateway, gateway,
     return base64.b64encode(netplan_yaml.encode('utf-8')).decode('utf-8')
 
 
+BCRYPT_B64 = bytes.maketrans(
+    b'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/',
+    b'./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789')
+
+
 def hash_password(plain_password):
-    """Hash a plain password using bcrypt."""
-    return bcrypt.hashpw(
-        plain_password.encode('utf-8'), bcrypt.gensalt()
-    ).decode('utf-8')
+    """Hash a plain password using bcrypt, with a salt derived from the deployment ID.
+
+    The same password gives the same hash on every run, so re-running this
+    node (for example a reinstall during an update) doesn't change the
+    cloud-init config, which the update would otherwise send to the VMs.
+    """
+    seed = hashlib.sha256(
+        f'rke2-tech-ops:{ctx.deployment.id}'.encode('utf-8')).digest()[:16]
+    salt = b'$2b$12$' + base64.b64encode(seed).rstrip(b'=').translate(BCRYPT_B64)
+    return bcrypt.hashpw(plain_password.encode('utf-8'), salt).decode('utf-8')
 
 
 def build_cloudinit_config(vm_hostname, vm_user_name, hashed_passwd,
@@ -298,6 +310,11 @@ if __name__ == "__main__":
         ctx.logger.info('Merged user cloudinit override into config.')
 
     ctx.instance.runtime_properties['cloudinit_config'] = cloudinit_config
+
+    # 6. The control plane sizes at install. With more than one control plane,
+    # CP1 keeps them (see update_checks.py).
+    for key in ('cp_vcpus', 'cp_memory_size', 'cp_os_disk_size'):
+        ctx.instance.runtime_properties[key] = get_input(key, None)
 
     ctx.instance.update()
     ctx.logger.info(
