@@ -26,7 +26,11 @@ inputs:
     hidden: false
     allow_update: true
     display_label: Control Plane vCPUs
-    description: Number of virtual CPUs allocated to each control-plane VM.
+    description: >
+      Number of virtual CPUs allocated to each control-plane VM.
+      An update can change it while the cluster has one control plane: the VM restarts and the
+      Kubernetes API is down until it is back. With more than one control plane the update is
+      refused (the control planes would restart together).
     default: 4
     constraints:
       - greater_or_equal: 2
@@ -40,7 +44,9 @@ inputs:
     hidden: false
     allow_update: true
     display_label: Control Plane Memory Size
-    description: Memory size with unit [KB,MB,GB,TB,PB,EB,ZB,YB] for each control-plane VM.
+    description: >
+      Memory size with unit [KB,MB,GB,TB,PB,EB,ZB,YB] for each control-plane VM.
+      Same update rule as Control Plane vCPUs.
     default: 8GB
     constraints:
       - pattern: '\d+(\.\d+)?(KB|MB|GB|TB|PB|EB|ZB|YB)'
@@ -57,11 +63,13 @@ inputs:
     hidden: false
     allow_update: true
     display_label: Control Plane OS Disk Size
-    description: OS disk size with unit [KB,MB,GB,TB,PB,EB,ZB,YB] for each control-plane VM.
+    description: >
+      OS disk size with unit [KB,MB,GB,TB,PB,EB,ZB,YB] for each control-plane VM.
+      Same update rule as Control Plane vCPUs; the disk can only grow.
     default: 100GB
     required: true
     constraints:
-      - pattern: '\d+(\.\d+)?(KB|MB|GB|TB|PB|EB|ZB,YB)'
+      - pattern: '\d+(\.\d+)?(KB|MB|GB|TB|PB|EB|ZB|YB)'
         error_message: |
           Incorrect format.
           Disk size must be followed by unit [KB,MB,GB,TB,PB,EB,ZB,YB].
@@ -73,7 +81,7 @@ inputs:
   cp_disk_controller:
     type: string
     display_label: Control Plane Disk Controller
-    allow_update: true
+    allow_update: false
     description: Disk controller type for control-plane VMs.
     default: VIRTIO
     hidden: false
@@ -94,7 +102,10 @@ inputs:
     hidden: false
     allow_update: true
     display_label: Agent Node vCPUs
-    description: Number of virtual CPUs allocated to each agent VM.
+    description: >
+      Number of virtual CPUs allocated to each agent VM.
+      An update applies a change to every agent. The agents restart, possibly at the same
+      time, so their workloads restart.
     default: 4
     constraints:
       - greater_or_equal: 2
@@ -108,10 +119,12 @@ inputs:
     hidden: false
     allow_update: true
     display_label: Agent Node Memory Size
-    description: Memory size with unit [KB,MB,GB,TB,PB,EB,ZB,YB] for each agent VM.
+    description: >
+      Memory size with unit [KB,MB,GB,TB,PB,EB,ZB,YB] for each agent VM.
+      Same update rule as Agent Node vCPUs.
     default: 8GB
     constraints:
-      - pattern: '\d+(\.\d+)?(KB|MB|GB|TB|PB|EB,ZB,YB)'
+      - pattern: '\d+(\.\d+)?(KB|MB|GB|TB|PB|EB|ZB|YB)'
         error_message: |
           Incorrect format.
           Memory size must be followed by unit [KB,MB,GB,TB,PB,EB,ZB,YB].
@@ -125,11 +138,13 @@ inputs:
     hidden: false
     allow_update: true
     display_label: Agent Node OS Disk Size
-    description: OS disk size with unit [KB,MB,GB,TB,PB,EB,ZB,YB] for each agent VM.
+    description: >
+      OS disk size with unit [KB,MB,GB,TB,PB,EB,ZB,YB] for each agent VM.
+      Same update rule as Agent Node vCPUs; the disk can only grow.
     default: 100GB
     required: true
     constraints:
-      - pattern: '\d+(\.\d+)?(KB|MB|GB|TB|PB|EB,ZB,YB)'
+      - pattern: '\d+(\.\d+)?(KB|MB|GB|TB|PB|EB|ZB|YB)'
         error_message: |
           Incorrect format.
           Disk size must be followed by unit [KB,MB,GB,TB,PB,EB,ZB,YB].
@@ -141,7 +156,7 @@ inputs:
   ag_disk_controller:
     type: string
     display_label: Agent Node Disk Controller
-    allow_update: true
+    allow_update: false
     description: Disk controller type for agent VMs.
     default: VIRTIO
     hidden: false

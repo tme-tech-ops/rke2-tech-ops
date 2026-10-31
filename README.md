@@ -23,6 +23,7 @@ Both blueprints leverage the [Fabric plugin](https://docs.getcloudify.org/latest
     - [Control-Plane Only (3 Nodes)](#control-plane-only-3-nodes)
     - [Control-Plane with Agent Nodes](#control-plane-with-agent-nodes)
   - [Deployment Outputs](#multi-node-deployment-outputs)
+  - [Updating a Multi-Node Deployment](#updating-a-multi-node-deployment)
   - [Technical Details](#multi-node-technical-details)
 - [Standalone Deployment](#standalone-deployment)
   - [Overview](#standalone-overview)
@@ -33,6 +34,7 @@ Both blueprints leverage the [Fabric plugin](https://docs.getcloudify.org/latest
   - [Environment Configuration Inputs](#environment-configuration-inputs)
   - [Install Tasks](#install-tasks)
   - [Deployment Outputs](#standalone-deployment-outputs)
+  - [Updating a Standalone Deployment](#updating-a-standalone-deployment)
   - [Technical Details](#standalone-technical-details)
 - [Input Examples](#input-examples)
   - [Multi-Node Examples](#multi-node-examples)
@@ -64,7 +66,8 @@ The workflow performs the following steps:
 ### Multi-Node Prerequisites
 
 - A Dell NativeEdge Endpoint registered in DAP
-- The `edge-cloudinit-utility-vm` blueprint uploaded to the DAP Orchestrator
+- The `edge-cloudinit-utility-vm` blueprint uploaded to the DAP Orchestrator with revision
+  `1.2.0.0` (the default of **Utility VM Blueprint Revision**; see the utility's README)
 - An OS image secret configured in the DAP secret store (binary configuration type)
 - A VM password secret configured in the DAP secret store (password type)
 - Network connectivity between the Endpoint and the internet (or a configured offline archive / private registry)
@@ -113,7 +116,8 @@ These inputs appear in the **Advanced Deployment Configuration** group.
 | Offline Binary Configuration Secret | `offline_binary_secret` | secret_key | -- | Offline archive binary secret (shown when offline mode is enabled) |
 | Enable CIS Hardening | `enable_cis` | boolean | `false` | Enable CIS Kubernetes hardening profile |
 | Utility VM Blueprint Name | `utility_blueprint_id` | string | `edge-cloudinit-utility-vm` | Name of the uploaded edge-cloudinit utility VM blueprint |
-| Script URL | `script_url` | string | *(GitHub URL)* | URL of the `rke2_installer.sh` script |
+| Utility VM Blueprint Revision | `utility_blueprint_revision` | string | `1.2.0.0` | Revision of the utility blueprint the VMs are created from; upload the utility with exactly this revision |
+| Script URL | `script_url` | string | *(pinned installer commit)* | URL of the `rke2_installer.sh` script; the default is the installer commit this release was tested with |
 | Log Output to hide | `hide_log_output` | list | `["stdout"]` | Log output to suppress: `stdout`, `stderr`, or `both` |
 | Debug Logging | `debug` | integer | `1` | Debug logging (0 = off, 1 = on) |
 | Service Account Namespace | `sa_namespace` | string | `kube-system` | Namespace for the DAP service account and bearer token |
@@ -228,6 +232,48 @@ After a successful deployment, the following capabilities are exposed:
 | `vm_ssh_private_key` | Secret name for the SSH private key |
 | `dap_endpoint` | DAP infrastructure endpoint registration details |
 
+### Updating a Multi-Node Deployment
+
+An update changes the cluster's VMs, nothing else. RKE2 and its settings are
+fixed at install: an update never re-runs the installer, so an update with no
+change, or a move to a new revision of this blueprint, leaves the cluster as it
+is. Update the **rke2 deployment**, not the `utility-vm-...` deployments it
+creates (they refuse direct updates).
+
+What an update can change:
+
+| Input | Change | Notes |
+|---|---|---|
+| Control Plane vCPUs, Memory Size | up or down, **one control plane only** | The VM restarts; the Kubernetes API is down until it is back. With three control planes the update is refused ("This cluster has 3 control planes ...") and the VMs stay as they are: they would restart together and etcd would lose its quorum. |
+| Control Plane OS Disk Size | grow only, one control plane only | As above. A smaller size is refused ("Disks can only grow"). |
+| Agent Node vCPUs, Memory Size | up or down | Applies to every agent. The agents restart, possibly at the same time, so their workloads restart. |
+| Agent Node OS Disk Size | grow only | A smaller size is refused ("Disks can only grow") and the VMs stay as they are. |
+| Add Disks, Additional Virtual Disks (CP1 and agents) | add, grow, remove | Removing a disk (or unticking Add Disks) deletes it and its data. The guest doesn't partition or mount the disks. The Endpoint may restart the VM for a disk change. CP2-3's disks are fixed, so with three control planes at most one (CP1) restarts for a disk change. |
+| Utility VM Blueprint Revision | a newer revision of the same major version | Upload that revision first. |
+
+Everything else is locked: the RKE2 version and cluster settings, the number of
+control planes and agents, VM names and hostnames, OS image and type, network
+settings, registry and offline settings, the installer URL, the disk controller
+and device passthrough. Changing those needs a new deployment (RKE2 upgrades
+and scaling are planned).
+
+- **Keep "Run automatic reinstall" unchecked.** The refusals above leave the VMs
+  as they are, but if the Endpoint refuses some other change, automatic
+  reinstall makes the orchestrator delete and recreate that VM instead of
+  failing the update.
+- **Reinstalling an install node keeps the cluster.** A reinstall list, Heal or
+  automatic reinstall of `install_app`, `install_cp` or `install_ag` keeps RKE2
+  and its data; the installer finds RKE2 installed and leaves it. Only
+  uninstalling the deployment removes RKE2.
+- **After a refused or failed update**, the deployment keeps the new input
+  values. Run another update with the values the VMs really have.
+- **Deployments created with 1.0.x** move to this version with an update to
+  revision 1.2.0.0, after `edge-cloudinit-utility-vm` 1.2.0.0 is uploaded. The
+  VMs aren't recreated. On such a cluster with three control planes, CP1 has no
+  record of its install-time size, so a later Control Plane Profile change
+  reaches CP1 alone (the update is still refused and CP2-3 keep their sizes);
+  set the profile back afterwards.
+
 ### Multi-Node Technical Details
 
 The multi-node blueprint is composed of several imported YAML files:
@@ -340,7 +386,7 @@ These inputs appear in the **Environment Configuration** group.
 | Join Mode | `join_mode` | string | `""` | Join type: `server` or `agent` (required for `join` task) |
 | Join Server FQDN/IP | `join_server` | string | `""` | FQDN or IP of the RKE2 server to join |
 | Join Token | `join_token` | string | `""` | Cluster join token from the RKE2 server |
-| Script URL | `script_url` | string | *(GitHub URL)* | URL of the `rke2_installer.sh` script |
+| Script URL | `script_url` | string | *(pinned installer commit)* | URL of the `rke2_installer.sh` script; the default is the installer commit this release was tested with |
 | Airgapped Mode | `offline_mode` | boolean | `false` | Enable air-gapped installation |
 | Offline Binary Configuration Secret | `offline_binary_secret` | secret_key | -- | Offline archive secret (shown when offline mode is enabled) |
 | Registry Authentication Secret | `registry_secret` | secret_key | -- | Registry authentication secret |
@@ -379,6 +425,24 @@ After a successful deployment, the following capabilities are exposed:
 | `offline_package_name` | Name of the offline archive (after `save` task) |
 | `offline_package_uploaded` | Whether the offline archive was uploaded |
 | `offline_package_url` | URL where the offline archive was uploaded |
+
+### Updating a Standalone Deployment
+
+A standalone deployment runs its Install Task once, at install. Every input is
+locked and an update never re-runs the task, so an update with no change, or a
+move to a new revision of this blueprint, leaves the VM and the cluster as they
+are. To change a setting, run a new deployment with the task you need (for
+example `install velero` with new Velero settings).
+
+- **Uninstalling** a deployment whose task installed RKE2 (`install`,
+  `install push`, `join`) uninstalls RKE2 from the VM. Uninstalling any other
+  task deployment (`install velero`, `install monitoring`, `save`, `push`,
+  `uninstall`) leaves RKE2, and what the task added, in place.
+- **A reinstall or Heal** of `install_app` keeps RKE2; the installer finds it
+  installed and leaves it.
+- To resize the VM under the cluster, update its **edge-cloudinit-linux**
+  deployment with Force ticked (this deployment depends on it); RKE2 comes back
+  after the VM restarts.
 
 ### Standalone Technical Details
 

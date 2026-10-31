@@ -1,10 +1,13 @@
 tosca_definitions_version: dell_1_1
 
 description: >
-  This blueprint deploys RKE2 Kubernetes on an existing edge-cloud-init deployment
+  This blueprint runs one rke2_installer.sh task (install RKE2, join a cluster, add Velero or
+  monitoring, save or push images) on an existing edge-cloudinit VM. Its settings are fixed at
+  install; an update doesn't re-run the task.
 
 imports:
   - dell/types/types.yaml
+  - plugin:fabric-plugin?version= >=3.4.2.0,<4.0.0.0
   - tech-ops/definitions.yaml
   - tech-ops/inputs.yaml
   - tech-ops/outputs.yaml
@@ -106,7 +109,7 @@ labels:
       - rke2-tech-ops
   version:
     values:
-      - "1.0.0.0"
+      - "1.2.0.0"
 
 blueprint_labels:
   env:

@@ -68,16 +68,20 @@ fi
 
 # Assemble join server command
 INSTALL_CMD="join server ${JOIN_SERVER} ${JOIN_TOKEN}"
+# LOG_CMD is the same command for the log, without the join token and registry password.
+LOG_CMD="join server ${JOIN_SERVER} ****"
 
 # Append optional -tls-san flag (servers support tls-san)
 if [ -n "${TLS_SAN:-}" ] && [ "${TLS_SAN}" != "None" ]; then
     INSTALL_CMD="${INSTALL_CMD} -tls-san ${TLS_SAN}"
+    LOG_CMD="${LOG_CMD} -tls-san ${TLS_SAN}"
 fi
 
 # Append optional -registry flag
 if [ -n "${REG_URL:-}" ] && [ "${REG_URL}" != "None" ]; then
     INSTALL_CMD="${INSTALL_CMD} -registry ${REG_URL} ${REG_USER} ${REG_PASS}"
+    LOG_CMD="${LOG_CMD} -registry ${REG_URL} ${REG_USER} ****"
 fi
 
-ctx logger info "Parsed install command: ${INSTALL_CMD}"
+ctx logger info "Parsed install command: ${LOG_CMD}"
 ctx instance runtime-properties capabilities.install_cmd "${INSTALL_CMD}"

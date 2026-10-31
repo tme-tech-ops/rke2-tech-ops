@@ -52,16 +52,24 @@ fi
 
 # Assemble install command (CP1 always installs, never joins)
 INSTALL_CMD="install"
+# LOG_CMD is the same command for the log, without the registry password.
+LOG_CMD="install"
 
 # Append optional -tls-san flag
 if [ -n "${TLS_SAN:-}" ] && [ "${TLS_SAN}" != "None" ]; then
     INSTALL_CMD="${INSTALL_CMD} -tls-san ${TLS_SAN}"
+    LOG_CMD="${LOG_CMD} -tls-san ${TLS_SAN}"
 fi
 
-# Append optional -registry flag
+# Append optional -registry flag (and push, which copies the RKE2 images to that registry)
 if [ -n "${REG_URL:-}" ] && [ "${REG_URL}" != "None" ]; then
+    if [ "$(echo "${PUSH_IMAGES:-false}" | tr '[:upper:]' '[:lower:]')" = "true" ]; then
+        INSTALL_CMD="${INSTALL_CMD} push"
+        LOG_CMD="${LOG_CMD} push"
+    fi
     INSTALL_CMD="${INSTALL_CMD} -registry ${REG_URL} ${REG_USER} ${REG_PASS}"
+    LOG_CMD="${LOG_CMD} -registry ${REG_URL} ${REG_USER} ****"
 fi
 
-ctx logger info "Parsed install command: ${INSTALL_CMD}"
+ctx logger info "Parsed install command: ${LOG_CMD}"
 ctx instance runtime-properties capabilities.install_cmd "${INSTALL_CMD}"

@@ -7,7 +7,6 @@ if [[ ${OFFLINE_MODE,,} == "true" ]]; then
         exit 1
     else
         ctx logger info "Downloading offline binary..."
-        ctx logger info "curl -skfLu "$OFFLINE_BINARY_USER:$OFFLINE_BINARY_PASSWORD" $OFFLINE_BINARY_URL -o ~/$(basename $OFFLINE_BINARY_URL)"
         if [[ -f ~/$(basename $OFFLINE_BINARY_URL) ]]; then
             ctx logger info "Offline binary already exists. Skipping download."
         else
@@ -43,6 +42,8 @@ fi
 # Install command parsing
 ctx logger info "Assembling install command for run_arg: ${RUN_ARG}"
 INSTALL_CMD="${RUN_ARG}"
+# LOG_CMD is the same command for the log, without the join token and registry password.
+LOG_CMD="${RUN_ARG}"
 
 # Handle join mode: append join_mode, join_server, join_token as positional args
 if [[ "$RUN_ARG" == "join" ]]; then
@@ -59,17 +60,20 @@ if [[ "$RUN_ARG" == "join" ]]; then
         exit 1
     fi
     INSTALL_CMD="${INSTALL_CMD} ${JOIN_MODE} ${JOIN_SERVER} ${JOIN_TOKEN}"
+    LOG_CMD="${LOG_CMD} ${JOIN_MODE} ${JOIN_SERVER} ****"
 fi
 
 # Append optional -tls-san flag
 if [[ -n "$TLS_SAN" && "$TLS_SAN" != "None" ]]; then
     INSTALL_CMD="${INSTALL_CMD} -tls-san ${TLS_SAN}"
+    LOG_CMD="${LOG_CMD} -tls-san ${TLS_SAN}"
 fi
 
 # Append optional -registry flag
 if [[ -n "$REG_URL" && "$REG_URL" != "None" ]]; then
     INSTALL_CMD="${INSTALL_CMD} -registry ${REG_URL} ${REG_USER} ${REG_PASS}"
+    LOG_CMD="${LOG_CMD} -registry ${REG_URL} ${REG_USER} ****"
 fi
 
-ctx logger info "parsed install command: ${INSTALL_CMD}"
+ctx logger info "parsed install command: ${LOG_CMD}"
 ctx instance runtime-properties capabilities.install_cmd "$INSTALL_CMD"

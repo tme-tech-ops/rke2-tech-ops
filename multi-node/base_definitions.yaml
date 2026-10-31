@@ -1,10 +1,18 @@
-imports:
-  - dell/types/types.yaml
-  - plugin:edge-plugin?version= >=3.3.17.0,<4.0.0.0
-  - plugin:utilities-plugin?version= >=3.1.4.0,<4.0.0.0
-  - plugin:fabric-plugin?version= >=3.4.2.0,<4.0.0.0
-
 dsl_definitions:
+
+  # For nodes that only do something when the cluster is created (VM prep and
+  # the RKE2 install nodes): they never drift, so a deployment update never
+  # re-runs or reinstalls them. An update changes the VMs only.
+  no_drift: &no_drift
+    implementation: multi-node/scripts/no_drift.py
+    executor: central_deployment_agent
+
+  # stop of the RKE2 install nodes: uninstalls RKE2 only when the deployment is
+  # uninstalled (or a node is scaled away). A reinstall or Heal keeps it.
+  # See multi-node/scripts/rke2_stop.sh.
+  rke2_stop_inputs: &rke2_stop_inputs
+    script_path: multi-node/scripts/rke2_stop.sh
+    hide_output: { get_input: hide_log_output }
 
 # Base CP1 Environment Checks
   env_precheck_inputs: &env_precheck_inputs
@@ -14,12 +22,13 @@ dsl_definitions:
         OFFLINE_MODE: { get_input: offline_mode }
         OFFLINE_BINARY_URL: { get_input: offline_binary_url }
         OFFLINE_BINARY_USER: { get_input: offline_binary_access_user }
-        OFFLINE_BINARY_PASSWORD: { get_secret: { get_input: offline_binary_access_token } }
+        OFFLINE_BINARY_PASSWORD: { get_secret: [ { get_input: offline_binary_secret }, binary_image_access_token ] }
         SCRIPT_URL: { get_input: script_url }
         TLS_SAN: { get_input: tls_san }
         REG_URL: { get_input: registry_url }
         REG_USER: { get_input: registry_access_user }
-        REG_PASS: { concat: [ '"', { get_input: registry_password }, '"' ] }
+        REG_PASS: { concat: [ '"', { get_secret: [ { get_input: registry_secret }, password ] }, '"' ] }
+        PUSH_IMAGES: { get_input: push_images }
     fabric_env:
       host_string: { get_attribute: [base_vm, capabilities, vm_name_id] }
       user: { get_input: cp_1_vm_user_name }
@@ -53,8 +62,6 @@ dsl_definitions:
 # App deploy
   run_install_cmds: &run_install_cmds
     - concat: [ "sudo -E ./rke2_installer.sh ", { get_attribute: [ env_precheck, capabilities, install_cmd ] } ]
-  run_uninstall_cmds: &run_uninstall_cmds
-    - "sudo -E ./rke2_installer.sh uninstall"
 
   shell_env: &shell_env
     RKE2_VERSION: { get_input: rke2_version }
@@ -109,7 +116,10 @@ node_templates:
         artifact:
           path: { get_input: binary_image_url }
           username: { get_input: binary_image_access_user }
-          access_token: { get_secret: { get_input: binary_image_access_token } }
+          access_token:
+            get_secret:
+              - get_input: edge_os_image_secret
+              - binary_image_access_token
         version: { get_input: binary_image_version }
     interfaces:
       dell.interfaces.lifecycle:
@@ -123,6 +133,9 @@ node_templates:
           implementation:
             edge.nativeedge_plugin.tasks.delete_binary
 
+  # Builds the cloud-init config (first boot only) and CP1's NICs (fixed at
+  # install). Everything an update can change is built in base_vm's own
+  # properties from the inputs, because an update doesn't re-run this node.
   prep_config:
     type: dell.nodes.ApplicationModule
     interfaces:
@@ -148,10 +161,20 @@ node_templates:
                   - get_attribute: [ssh_keys, secret_key_name]
                   - "_public"
             cloudinit_override: { get_input: cloudinit }
+            cp_vcpus: { get_input: cp_vcpus }
+            cp_memory_size: { get_input: cp_memory_size }
+            cp_os_disk_size: { get_input: cp_os_disk_size }
+        check_drift: *no_drift
     relationships:
       - type: dell.relationships.depends_on
         target: ssh_keys
 
+  # CP1 is a deployment of the utility blueprint. On update, this component
+  # compares the inputs below with the child's and updates the child with the
+  # difference, so every value that can change is computed here from the inputs
+  # (not read from prep_config). Lists are sent as [] rather than null, so a
+  # no-change update finds no difference. With more than one control plane, CP1
+  # keeps its install-time sizes (see multi-node/scripts/update_checks.py).
   base_vm:
     type: dell.nodes.ServiceComponent
     properties:
@@ -159,6 +182,7 @@ node_templates:
         blueprint:
           external_resource: true
           id: { get_input: utility_blueprint_id }
+          revision_id: { get_input: utility_blueprint_revision }
         deployment:
           display_name: { concat: ["utility-vm-", get_input: cp_1_vm_name] }
           inputs:
@@ -166,9 +190,24 @@ node_templates:
             name: { get_input: cp_1_vm_name }
             image: { get_attribute: [binary_image, binary_details, extra, artifact_id] }
             os_type: { get_input: os_type }
-            cpu: { get_input: cp_vcpus }
-            memory: { get_input: cp_memory_size }
-            storage: { get_input: cp_os_disk_size }
+            cpu:
+              jmespath:
+                - "([0] > `1` && [2]) || [1]"
+                - - { get_input: number_of_control_plane }
+                  - { get_input: cp_vcpus }
+                  - { get_attribute: [prep_config, cp_vcpus] }
+            memory:
+              jmespath:
+                - "([0] > `1` && [2]) || [1]"
+                - - { get_input: number_of_control_plane }
+                  - { get_input: cp_memory_size }
+                  - { get_attribute: [prep_config, cp_memory_size] }
+            storage:
+              jmespath:
+                - "([0] > `1` && [2]) || [1]"
+                - - { get_input: number_of_control_plane }
+                  - { get_input: cp_os_disk_size }
+                  - { get_attribute: [prep_config, cp_os_disk_size] }
             disk: { get_input: cp_1_disk_wrapper }
             disk_controller: { get_input: cp_disk_controller }
             hardware_options.vTPM: { get_input: vtpm }
@@ -183,12 +222,39 @@ node_templates:
                 - get_attribute: [ssh_keys, secret_key_name]
                 - "_private"
             vm_hostname: { get_input: cp_1_hostname }
-            additional_disks: { get_input: cp_1_additional_disks }
-            usb: { get_input: cp_1_usb_wrapper }
-            serial_port: { get_input: cp_1_serial_port_wrapper }
-            gpu: { get_input: cp_1_gpu_wrapper }
-            video: { get_input: cp_1_video }
-            pcie: { get_input: cp_1_pcie_wrapper }
+            # CP1's disks can change with any number of control planes: CP2-3
+            # keep theirs, so at most one control plane restarts for a disk
+            # change.
+            additional_disks:
+              jmespath:
+                - "([0] && [1]) || `[]`"
+                - - { get_input: cp_1_add_disks }
+                  - { get_input: cp_1_additional_disks }
+            usb:
+              jmespath:
+                - "([0] && [1]) || `[]`"
+                - - { get_input: cp_1_use_passthrough }
+                  - { get_input: cp_1_usb_wrapper }
+            serial_port:
+              jmespath:
+                - "([0] && [1]) || `[]`"
+                - - { get_input: cp_1_use_passthrough }
+                  - { get_input: cp_1_serial_port_wrapper }
+            gpu:
+              jmespath:
+                - "([0] && [1]) || `[]`"
+                - - { get_input: cp_1_use_passthrough }
+                  - { get_input: cp_1_gpu_wrapper }
+            video:
+              jmespath:
+                - "([0] && [1]) || `[]`"
+                - - { get_input: cp_1_use_passthrough }
+                  - { get_input: cp_1_video }
+            pcie:
+              jmespath:
+                - "([0] && [1]) || `[]`"
+                - - { get_input: cp_1_use_passthrough }
+                  - { get_input: cp_1_pcie_wrapper }
             iso_files: { get_input: iso_files }
             boot_order: { get_input: boot_order }
     relationships:
@@ -207,10 +273,7 @@ node_templates:
           implementation: fabric.fabric_plugin.tasks.run_script
           inputs:
             <<: *env_precheck_inputs
-        update:
-          implementation: fabric.fabric_plugin.tasks.run_script
-          inputs:
-            <<: *env_precheck_inputs
+        check_drift: *no_drift
     relationships:
        - type: dell.relationships.depends_on
          target: base_vm
@@ -232,32 +295,22 @@ node_templates:
             commands: *run_install_cmds
             fabric_env:
               <<: *command_fabric_env
-        update:
-          executor: central_deployment_agent
-          implementation: fabric.fabric_plugin.tasks.run_commands
-          inputs:
-            hide_output: { get_input: hide_log_output }
-            proxy_settings:
-              auto_resolve: false
-              enable_socks5: false
-              target_id: { get_attribute: [base_vm, capabilities, proxy_target_id] }
-              target_ip: { get_attribute: [base_vm, capabilities, vm_name_id] }
-            commands: *run_install_cmds
-            fabric_env:
-              <<: *command_fabric_env
+        check_drift: *no_drift
         stop:
           executor: central_deployment_agent
-          implementation: fabric.fabric_plugin.tasks.run_commands
+          implementation: fabric.fabric_plugin.tasks.run_script
           inputs:
-            hide_output: { get_input: hide_log_output }
+            <<: *rke2_stop_inputs
             proxy_settings:
               auto_resolve: false
               enable_socks5: false
               target_id: { get_attribute: [base_vm, capabilities, proxy_target_id] }
               target_ip: { get_attribute: [base_vm, capabilities, vm_name_id] }
-            commands: *run_uninstall_cmds
             fabric_env:
-              <<: *command_fabric_env
+              host_string: { get_attribute: [base_vm, capabilities, vm_name_id] }
+              user: { get_input: cp_1_vm_user_name }
+              key: { get_secret: { get_attribute: [base_vm, capabilities, vm_ssh_private_key] } }
+              port: 22
     relationships:
        - type: dell.relationships.depends_on
          target: env_precheck
@@ -270,10 +323,7 @@ node_templates:
           implementation: fabric.fabric_plugin.tasks.run_script
           inputs:
             <<: *env_postcheck_inputs
-        update:
-          implementation: fabric.fabric_plugin.tasks.run_script
-          inputs:
-            <<: *env_postcheck_inputs
+        check_drift: *no_drift
     relationships:
        - type: dell.relationships.depends_on
          target: install_app

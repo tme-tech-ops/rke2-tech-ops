@@ -68,11 +68,14 @@ fi
 
 # Assemble join agent command (no -tls-san for agents)
 INSTALL_CMD="join agent ${JOIN_SERVER} ${JOIN_TOKEN}"
+# LOG_CMD is the same command for the log, without the join token and registry password.
+LOG_CMD="join agent ${JOIN_SERVER} ****"
 
 # Append optional -registry flag
 if [ -n "${REG_URL:-}" ] && [ "${REG_URL}" != "None" ]; then
     INSTALL_CMD="${INSTALL_CMD} -registry ${REG_URL} ${REG_USER} ${REG_PASS}"
+    LOG_CMD="${LOG_CMD} -registry ${REG_URL} ${REG_USER} ****"
 fi
 
-ctx logger info "Parsed install command: ${INSTALL_CMD}"
+ctx logger info "Parsed install command: ${LOG_CMD}"
 ctx instance runtime-properties capabilities.install_cmd "${INSTALL_CMD}"

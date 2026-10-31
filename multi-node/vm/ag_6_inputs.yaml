@@ -203,6 +203,7 @@ inputs:
     constraints:
     - labels:
       - cloud: nativeedge
+      error_message: Select a NativeEdge Endpoint.
     display:
       group: add_agents
       index: 600
@@ -213,6 +214,7 @@ inputs:
 
   ag_6_name:
     type: string
+    allow_update: false
     hidden: false
     display_label: 'Agent 6 VM Name'
     description: |
@@ -228,6 +230,7 @@ inputs:
 
   ag_6_hostname:
     type: string
+    allow_update: false
     hidden: false
     display_label: 'Agent 6 Hostname'
     description: |
@@ -267,6 +270,7 @@ inputs:
               get_capability:
               - get_input: ag_deployment_id_06
               - ece_service_tag
+        error_message: Select a datastore on the Endpoint.
     display:
       group: add_agents
       index: 603
@@ -277,7 +281,7 @@ inputs:
   ag_6_vnic_0_segment_name:
     type: string
     hidden: false
-    allow_update: true
+    allow_update: false
     required: true
     display_label: 'Agent 6 Virtual Network Segment name for Primary Interface'
     description: Name of the Virtual Network Segment.
@@ -289,6 +293,7 @@ inputs:
             get_capability:
             - get_input: ag_deployment_id_06
             - ece_service_tag
+      error_message: Select a NAT or bridge segment on the Endpoint.
     display:
       group: add_agents
       index: 604
@@ -298,6 +303,7 @@ inputs:
 
   ag_6_use_dhcp:
     type: boolean
+    allow_update: false
     hidden: false
     display_label: 'Agent 6 Use DHCP'
     description: |
@@ -312,6 +318,7 @@ inputs:
 
   ag_6_static_ip:
     type: string
+    allow_update: false
     hidden: false
     exclusive_with: ag_6_use_dhcp
     display_label: 'Agent 6 Static IP in CIDR notation'
@@ -330,6 +337,7 @@ inputs:
 
   ag_6_use_gateway:
     type: boolean
+    allow_update: false
     hidden: false
     exclusive_with: ag_6_use_dhcp
     display_label: 'Agent 6 Use Gateway'
@@ -342,6 +350,7 @@ inputs:
 
   ag_6_gateway:
     type: string
+    allow_update: false
     hidden: false
     only_with: ag_6_use_gateway
     display_label: 'Agent 6 Gateway IP'
@@ -358,6 +367,7 @@ inputs:
 
   ag_6_use_dns:
     type: boolean
+    allow_update: false
     hidden: false
     exclusive_with: ag_6_use_dhcp
     display_label: 'Agent 6 Use DNS'
@@ -370,6 +380,8 @@ inputs:
 
   ag_6_dns:
     type: list
+    item_type: string
+    allow_update: false
     hidden: false
     only_with: ag_6_use_dns
     display_label: 'Agent 6 DNS Servers'
@@ -382,6 +394,7 @@ inputs:
 
   ag_6_use_nat:
     type: boolean
+    allow_update: false
     hidden: false
     display_label: 'Agent 6 Enable NAT Port Forwarding'
     description: |
@@ -396,6 +409,7 @@ inputs:
 
   ag_6_port_forward_rules:
     type: list
+    allow_update: false
     hidden: false
     only_with: ag_6_use_nat
     item_type: ag_6_port_forward_rules
@@ -411,6 +425,7 @@ inputs:
 
   ag_6_add_nics:
     type: boolean
+    allow_update: false
     hidden: false
     display_label: 'Agent 6 Add Network Interfaces'
     description: |
@@ -442,7 +457,7 @@ inputs:
   ag_6_add_disks:
     type: boolean
     hidden: false
-    allow_update: false
+    allow_update: true
     display_label: 'Agent 6 Add Disks'
     description: |
       Check to add a list of additional disks
@@ -458,11 +473,13 @@ inputs:
     type: list
     item_type: ag_6_additional_disks
     hidden: false
-    allow_update: false
+    allow_update: true
     only_with: ag_6_add_disks
     display_label: 'Agent 6 Optional list of additional Virtual Disks'
     description: >
       List of additional virtual disks to be created.
+      An update can add disks, grow them or remove them (removing a disk deletes it and its
+      data); disks can't shrink. The guest doesn't partition or mount them.
     required: false
     default: []
     display:
@@ -471,6 +488,7 @@ inputs:
 
   ag_6_use_passthrough:
     type: boolean
+    allow_update: false
     hidden: false
     display_label: 'Agent 6 Enable device passthrough'
     description: |
@@ -501,6 +519,7 @@ inputs:
             get_capability:
             - get_input: ag_deployment_id_06
             - ece_service_tag
+      error_message: Select USB devices on the Endpoint.
     default: []
     display:
       group: add_agents
@@ -508,6 +527,7 @@ inputs:
 
   ag_6_gpu_wrapper:
     type: list
+    allow_update: false
     item_type: string
     hidden: false
     only_with: ag_6_use_passthrough
@@ -524,6 +544,7 @@ inputs:
             get_capability:
             - get_input: ag_deployment_id_06
             - ece_service_tag
+      error_message: Select GPUs on the Endpoint.
     default: []
     display:
       group: add_agents
@@ -531,6 +552,7 @@ inputs:
 
   ag_6_pcie_wrapper:
     type: list
+    allow_update: false
     item_type: string
     display_label: 'Agent 6 PCIe Passthrough'
     hidden: false
@@ -546,6 +568,7 @@ inputs:
             get_capability:
             - get_input: ag_deployment_id_06
             - ece_service_tag
+      error_message: Select PCIe devices on the Endpoint.
     default: []
     display:
       group: add_agents
@@ -553,6 +576,7 @@ inputs:
 
   ag_6_video:
     type: list
+    allow_update: false
     item_type: string
     hidden: false
     only_with: ag_6_use_passthrough
@@ -564,6 +588,7 @@ inputs:
     constraints:
     - valid_values:
         - "onboard controller"
+      error_message: Select onboard controller, or leave it empty.
     default: []
     display:
       group: add_agents
@@ -588,6 +613,7 @@ inputs:
               get_capability:
               - get_input: ag_deployment_id_06
               - ece_service_tag
+        error_message: Select serial ports on the Endpoint.
     display:
       group: add_agents
       index: 622
