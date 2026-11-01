@@ -5,7 +5,7 @@ the catalog revision to upload each entry point as (see the README): the
 multi-node blueprint (`rke2_tech_ops_multi-node.yaml`) and the standalone
 blueprint (`rke2_tech_ops.yaml`) share it.
 
-## 1.2.0.0 - unreleased
+## 1.2.0.0 - 2026-10-31
 
 Safe deployment updates (Day-2). The multi-node blueprint needs
 `edge-cloudinit-utility-vm` 1.2.0.0 or a later 1.x revision.
@@ -87,6 +87,20 @@ Safe deployment updates (Day-2). The multi-node blueprint needs
   validated; the version label is corrected. Lint: the remaining findings are
   the plain-text join token and Velero S3 keys, left for the credentials
   change (secret inputs) that follows this release.
+
+## 1.1.5.0
+
+Release restructure and pinning supported plugins for DAP 2.0.0.1 / DDPC 4.2.0.0 -
+untested (2026-11-01).
+
+- On branch `ddpc-4.2.0.0-snapshot`, not on `main`: the 1.2.0.0 code for DAP
+  2.0.0.1 with DDPC 4.2.0.0, not tested on that platform.
+- Multi-node: edge-plugin pinned to 3.3.25.0 and utilities-plugin to 3.1.4.0 (the
+  versions DAP 2.0.0.1 ships); `utility_blueprint_revision` defaults to 1.1.5.0, the
+  edge-cloudinit-utility-vm snapshot for that platform (same input and capability
+  names as 1.2.0.0). Standalone: imports only the fabric-plugin, unchanged.
+- Tags are now blueprint versions. Each has a GitHub release named after the DAP
+  and DDPC versions it was tested on, with upload-ready zips.
 
 ## 1.0.3 and earlier
 

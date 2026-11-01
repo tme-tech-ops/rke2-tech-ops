@@ -8,6 +8,16 @@ Both blueprints leverage the [Fabric plugin](https://docs.getcloudify.org/latest
 
 ---
 
+## Releases
+
+| Release | DAP | DDPC | Version | Tested |
+|---|---|---|---|---|
+| [`1.2.0.0`](https://github.com/tme-tech-ops/rke2-tech-ops/releases/tag/1.2.0.0) | 2.1.1.0 | 4.3.0.0 | 1.2.0.0 | yes |
+| [`1.1.5.0`](https://github.com/tme-tech-ops/rke2-tech-ops/releases/tag/1.1.5.0) | 2.0.0.1 | 4.2.0.0 | 1.1.5.0 (branch `ddpc-4.2.0.0-snapshot`) | no |
+
+Download the zip attached to the release that matches your DAP and DDPC versions (not
+"Source code"); its notes give the blueprint name, revision and upload order.
+
 ## Table of Contents
 
 - [Multi-Node Deployment](#multi-node-deployment)
