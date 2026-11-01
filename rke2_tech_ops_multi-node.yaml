@@ -8,8 +8,8 @@ description: >
 
 imports:
   - dell/types/types.yaml
-  - plugin:edge-plugin?version= >=3.3.17.0,<4.0.0.0
-  - plugin:utilities-plugin?version= >=3.1.4.0,<4.0.0.0
+  - plugin:edge-plugin?version= >=3.3.25.0,<3.3.26.0
+  - plugin:utilities-plugin?version= >=3.1.4.0,<3.1.5.0
   - plugin:fabric-plugin?version= >=3.4.2.0,<4.0.0.0
   - multi-node/base_definitions.yaml
   - multi-node/deploy_inputs.yaml
@@ -327,7 +327,7 @@ labels:
       - rke2-tech-ops
   version:
     values:
-      - "1.2.0.0"
+      - "1.1.5.0"
 
 blueprint_labels:
   env:

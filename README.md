@@ -1,5 +1,13 @@
 # rke2-tech-ops
 
+> **DAP 2.0.0.1 + DDPC 4.2.0.0 snapshot branch (1.1.5.0, untested).** The 1.2.0.0 code with
+> the plugins DAP 2.0.0.1 ships. Multi-node pins the edge-plugin (3.3.25.0) and utilities-plugin (3.1.4.0) and
+> creates its VMs from `edge-cloudinit-utility-vm` revision **1.1.5.0**
+> ([release](https://github.com/tme-tech-ops/edge-cloudinit-utility-vm/releases/tag/1.1.5.0)), where this
+> README says 1.2.0.0. Upload the fabric-plugin first (DAP 2.0.0.1
+> doesn't ship it). For DAP 2.1.1.0 + DDPC 4.3.0.0 use `main` and release
+> [1.2.0.0](https://github.com/tme-tech-ops/rke2-tech-ops/releases/tag/1.2.0.0).
+
 Automated RKE2 Kubernetes deployment blueprints for the Dell Automation Platform (DAP) Orchestrator. This repository provides two blueprint entry points for deploying RKE2 clusters on Dell NativeEdge infrastructure: a **multi-node** blueprint that provisions VMs and installs a full cluster in a single deployment, and a **standalone** blueprint that installs RKE2 onto an existing edge-cloud-init VM.
 
 Both blueprints leverage the [Fabric plugin](https://docs.getcloudify.org/latest/working_with/official_plugins/configuration/fabric/) to execute the [rke2_installer.sh](https://github.com/Chubtoad5/rke2-installer) script over SSH, supporting online, air-gapped, and private-registry deployment models.

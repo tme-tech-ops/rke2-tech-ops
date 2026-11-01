@@ -514,10 +514,10 @@ inputs:
       utility blueprint with exactly this revision (see the README). To move running
       VMs to a newer utility revision of the same major version, update the deployment
       with the new revision.
-    default: "1.2.0.0"
+    default: "1.1.5.0"
     constraints:
       - pattern: '^\S+$'
-        error_message: Enter the utility blueprint revision, for example 1.2.0.0.
+        error_message: Enter the utility blueprint revision, for example 1.1.5.0.
     display:
       group: adv_deploy
       index: 11
