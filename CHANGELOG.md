@@ -5,7 +5,7 @@ the catalog revision to upload each entry point as (see the README): the
 multi-node blueprint (`rke2_tech_ops_multi-node.yaml`) and the standalone
 blueprint (`rke2_tech_ops.yaml`) share it.
 
-## 1.2.1.0 - unreleased
+## 1.2.1.0 - 2026-11-11
 
 Moves to rke2-installer `v1.3.1` and fixes what was wrong in 1.2.0.0, in both
 entry points. Updating a 1.2.0.0 deployment to it changes nothing on the VMs.
