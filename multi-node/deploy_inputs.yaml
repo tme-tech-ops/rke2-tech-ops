@@ -11,6 +11,9 @@ inputs:
     description: |
       RKE2 Kubernetes version to install
     default: "v1.34.5+rke2r1"
+    constraints:
+      - pattern: '^v[0-9]+\.[0-9]+\.[0-9]+\+rke2r[0-9]+$'
+        error_message: "Enter an RKE2 version such as v1.34.5+rke2r1."
     display:
       group: basic_deploy
       index: 0
@@ -133,7 +136,8 @@ inputs:
     allow_update: false
     display_label: Install NGINX Ingress
     description: |
-      Install the default RKE2 NGINX ingress controller
+      Install the default RKE2 NGINX ingress controller. A server with it needs
+      iptables on the VM: the installer stops early without it.
     default: false
     constraints:
       - valid_values: [true, false]
@@ -184,6 +188,9 @@ inputs:
     description: |
       Version of the local-path-provisioner to install
     default: "v0.0.32"
+    constraints:
+      - pattern: '^$|^[A-Za-z0-9][A-Za-z0-9.+_-]*$'
+        error_message: "Leave blank for the installer default, or enter a version such as v1.2.3 (letters, digits, dots, +, _ and -)."
     display:
       group: basic_deploy
       index: 10
@@ -214,6 +221,9 @@ inputs:
       Additional TLS Subject Alternative Name (FQDN or IP) for the API server certificate.
       Leave blank if not needed.
     default: ""
+    constraints:
+      - pattern: '^$|^(([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}|((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))$'
+        error_message: "Leave blank, or enter a lowercase FQDN such as rke2.example.com, or an IPv4 address."
     display:
       group: basic_deploy
       index: 12
@@ -344,7 +354,8 @@ inputs:
     allow_update: false
     display_label: CNI Plugin
     description: |
-      Container Network Interface plugin for pod networking
+      Container Network Interface plugin for pod networking. With none, the
+      install completes but the nodes stay NotReady until you install a CNI.
     default: "canal"
     constraints:
       - valid_values:
@@ -366,6 +377,9 @@ inputs:
     description: |
       Pod network CIDR range
     default: "10.42.0.0/16"
+    constraints:
+      - pattern: '^[0-9A-Fa-f:.]+/[0-9]{1,3}(,[0-9A-Fa-f:.]+/[0-9]{1,3})?$'
+        error_message: "Enter a CIDR such as 10.42.0.0/16, or an IPv4 and an IPv6 CIDR separated by a comma."
     display:
       group: adv_deploy
       index: 1
@@ -379,6 +393,9 @@ inputs:
     description: |
       Service network CIDR range
     default: "10.43.0.0/16"
+    constraints:
+      - pattern: '^[0-9A-Fa-f:.]+/[0-9]{1,3}(,[0-9A-Fa-f:.]+/[0-9]{1,3})?$'
+        error_message: "Enter a CIDR such as 10.42.0.0/16, or an IPv4 and an IPv6 CIDR separated by a comma."
     display:
       group: adv_deploy
       index: 2
@@ -409,6 +426,9 @@ inputs:
       Path where etcd, containerd, and RKE2 data is stored.
       Use 'default' for /var/lib/rancher/rke2.
     default: "default"
+    constraints:
+      - pattern: '^(default|/[A-Za-z0-9._/-]*)$'
+        error_message: "Enter default, or an absolute path (letters, digits, dots, underscores, hyphens and slashes)."
     display:
       group: adv_deploy
       index: 4
@@ -423,6 +443,9 @@ inputs:
       Path where kubelet data is stored.
       Use 'default' for /var/lib/kubelet.
     default: "default"
+    constraints:
+      - pattern: '^(default|/[A-Za-z0-9._/-]*)$'
+        error_message: "Enter default, or an absolute path (letters, digits, dots, underscores, hyphens and slashes)."
     display:
       group: adv_deploy
       index: 5
@@ -437,6 +460,9 @@ inputs:
       Path where storage class PVCs are stored.
       Use 'default' for /opt/local-path-provisioner.
     default: "default"
+    constraints:
+      - pattern: '^(default|/[A-Za-z0-9._/-]*)$'
+        error_message: "Enter default, or an absolute path (letters, digits, dots, underscores, hyphens and slashes)."
     display:
       group: adv_deploy
       index: 6
@@ -447,7 +473,10 @@ inputs:
     allow_update: false
     display_label: Airgapped Mode
     description: |
-      Set to true to download and install from specified offline package
+      Set to true to download and install from specified offline package. It is
+      downloaded and extracted on every install, and it runs the rke2_installer.sh
+      it carries, not Script URL: save it with installer v1.3.1 and this
+      deployment's CNI.
     default: false
     constraints:
       - valid_values: [true, false]
@@ -530,11 +559,12 @@ inputs:
     display_label: Script URL
     description: >
       URL of the RKE2 installer script (rke2_installer.sh). The default is the
-      installer commit this release was tested with.
-    default: "https://github.com/Chubtoad5/rke2-installer/raw/0e066ba458b53a02ff860f8b99bf8625d4560031/rke2_installer.sh"
+      installer release this version was tested with (v1.3.1). A GitHub release
+      asset is checked against that release's SHA256SUMS before it runs.
+    default: "https://github.com/Chubtoad5/rke2-installer/releases/download/v1.3.1/rke2_installer.sh"
     constraints:
-      - pattern: '^https?://\S+/rke2_installer\.sh$'
-        error_message: Enter the URL of rke2_installer.sh.
+      - pattern: '^https?://[^\s''"$`\\]+/rke2_installer\.sh$'
+        error_message: "Enter an http(s) URL ending in /rke2_installer.sh (no quotes, spaces, $, backticks or backslashes)."
     display:
       group: adv_deploy
       index: 12
@@ -583,6 +613,9 @@ inputs:
     description: |
       Kubernetes namespace for the DAP service account, cluster role binding, and bearer token.
     default: "kube-system"
+    constraints:
+      - pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+        error_message: "Enter a namespace name - lowercase letters, digits and hyphens, starting and ending with a letter or digit."
     display:
       group: adv_deploy
       index: 15

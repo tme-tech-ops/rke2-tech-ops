@@ -7,6 +7,11 @@ cleanup() {
     exit $rc
 }
 trap cleanup EXIT
+# The fabric plugin leaves the settings in an env file on the VM.
+rm -f "$(dirname "$0")/env-$(basename "$0")"
+
+rke2_data="${RKE2_DATA:-default}"
+case "$rke2_data" in ""|default|None) rke2_data=/var/lib/rancher/rke2 ;; esac
 
 RKE2_RUNNING="false"
 RKE2_NODE_STATUS="N/A"
@@ -19,7 +24,7 @@ if systemctl is-active --quiet rke2-server 2>/dev/null; then
     RKE2_RUNNING="true"
 
     export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
-    export PATH="${PATH}:/var/lib/rancher/rke2/bin"
+    export PATH="${PATH}:${rke2_data}/bin"
     if command -v kubectl >/dev/null 2>&1; then
         node_name=$(hostname)
         if kubectl wait --for=condition=Ready "node/${node_name}" --timeout=120s >/dev/null 2>&1; then
@@ -31,7 +36,8 @@ if systemctl is-active --quiet rke2-server 2>/dev/null; then
         fi
     fi
 else
-    ctx logger info "RKE2 server service is NOT running on joined CP node."
+    ctx logger error "RKE2 server service is NOT running on joined CP node."
+    exit 1
 fi
 
 ctx logger info "CP join post-check completed."

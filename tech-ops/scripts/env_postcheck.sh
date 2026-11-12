@@ -1,4 +1,20 @@
-#!/bin/bash
+#!/bin/sh
+# create for env_postcheck (standalone): checks the result of the Install Task
+# and publishes it as capabilities, then uploads the offline package if asked.
+#
+# After a task that installs RKE2 (install, install push, join) the rke2 service
+# must be active, or the check fails. A node that isn't Ready is reported, not
+# failed: with CNI none it stays NotReady until a CNI is installed.
+#
+# It runs as the VM user, so ~ is the home directory where the installer ran;
+# what needs root runs with sudo.
+set -u
+# The fabric plugin leaves the settings in an env file on the VM. It holds a password.
+rm -f "$(dirname "$0")/env-$(basename "$0")"
+
+log() { ctx logger info "$1"; }
+fail() { ctx logger error "$1"; exit 1; }
+value() { [ "${1:-}" = "None" ] && return 0; printf '%s' "${1:-}"; }
 
 OFFLINE_PACKAGE_NAME="rke2-save.tar.gz"
 OFFLINE_PACKAGE_UPLOADED="false"
@@ -9,83 +25,77 @@ RKE2_API_URL="N/A"
 RKE2_JOIN_TOKEN="N/A"
 RKE2_KUBECONFIG="N/A"
 
+task="$(value "${RUN_ARG:-install}")"
+[ -n "$task" ] || task=install
+rke2_data="$(value "${RKE2_DATA:-default}")"
+case "$rke2_data" in ""|default) rke2_data=/var/lib/rancher/rke2 ;; esac
 mgmt_ip=$(hostname -I | awk '{print $1}')
 
-ctx logger info "Post install check started."
+log "Post install check started."
 
-# Primary health check: verify rke2-server or rke2-agent service is active
 if systemctl is-active --quiet rke2-server 2>/dev/null; then
-    ctx logger info "RKE2 server service is running."
+    log "RKE2 server service is running."
     RKE2_RUNNING="true"
     RKE2_API_URL="https://$mgmt_ip:6443"
-
-    # Attempt to get node status
-    export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
-    export PATH=$PATH:/var/lib/rancher/rke2/bin
-    if command -v kubectl &>/dev/null; then
-        kubectl wait --for=condition=Ready nodes --all --timeout=120s &>/dev/null
-        if [[ $? != 0 ]]; then 
-            RKE2_NODE_STATUS="NotReady"
-            ctx logger info "RKE2 cluster status: NotReady"
-        else 
-            RKE2_NODE_STATUS="Ready"
-            ctx logger info "RKE2 cluster status: Ready"
-        fi
-    fi
-
-    # Get join token if available
-    if [[ -f /var/lib/rancher/rke2/server/node-token ]]; then
-        RKE2_JOIN_TOKEN=$(cat /var/lib/rancher/rke2/server/node-token)
-        ctx logger info "Captured join token."
-    fi
-
     RKE2_KUBECONFIG="/etc/rancher/rke2/rke2.yaml"
-
+    if sudo "$rke2_data/bin/kubectl" --kubeconfig /etc/rancher/rke2/rke2.yaml \
+            wait --for=condition=Ready nodes --all --timeout=120s >/dev/null 2>&1; then
+        RKE2_NODE_STATUS="Ready"
+    else
+        RKE2_NODE_STATUS="NotReady"
+    fi
+    log "RKE2 cluster status: ${RKE2_NODE_STATUS}"
+    if token=$(sudo cat "$rke2_data/server/node-token" 2>/dev/null) && [ -n "$token" ]; then
+        RKE2_JOIN_TOKEN="$token"
+        log "Captured the join token from ${rke2_data}/server/node-token."
+    else
+        log "No join token at ${rke2_data}/server/node-token."
+    fi
 elif systemctl is-active --quiet rke2-agent 2>/dev/null; then
-    ctx logger info "RKE2 agent service is running."
+    log "RKE2 agent service is running."
     RKE2_RUNNING="true"
     RKE2_API_URL="N/A (agent node)"
     RKE2_NODE_STATUS="Agent node - check server for status"
     RKE2_KUBECONFIG="N/A (agent node)"
 else
-    ctx logger info "RKE2 service is not running."
-    # Check if this was an uninstall, save, or push operation (no service expected)
-    if [[ "$RUN_ARG" == "uninstall" || "$RUN_ARG" == "save" || "$RUN_ARG" == "push" ]]; then
-        ctx logger info "Operation was '${RUN_ARG}' - RKE2 service not expected to be running."
-    fi
+    case "$task" in
+        install|"install push"|join)
+            fail "RKE2 isn't running after Install Task '${task}': neither rke2-server nor rke2-agent is active."
+            ;;
+        *)
+            log "RKE2 service is not running (Install Task '${task}')."
+            ;;
+    esac
 fi
 
 # Offline package upload logic
-if [[ -f ~/"${OFFLINE_PACKAGE_NAME}" ]]; then
-    ctx logger info "Offline package found: ${OFFLINE_PACKAGE_NAME}"
-    ctx logger info "Upload package: $UPLOAD_OFFLINE_PACKAGE"
-    if [[ ${UPLOAD_OFFLINE_PACKAGE,,} == "true" ]]; then
-        ctx logger info "Uploading offline package..."
-        new_offline_package_name="$(date +%Y%m%d%H%M)-${OFFLINE_PACKAGE_NAME}"
-        mv ~/"${OFFLINE_PACKAGE_NAME}" ~/"${new_offline_package_name}"
-        if [[ -z $UPLOAD_BASE_URL || -z $UPLOAD_OFFLINE_PACKAGE_USER || -z $UPLOAD_OFFLINE_PACKAGE_PASSWORD ]]; then
-            ctx logger info "UPLOAD_BASE_URL, UPLOAD_OFFLINE_PACKAGE_USER, or UPLOAD_OFFLINE_PACKAGE_PASSWORD is missing."
-            exit 1
-        else
-            OFFLINE_PACKAGE_URL="${UPLOAD_BASE_URL}${new_offline_package_name}"
-            curl -ku "${UPLOAD_OFFLINE_PACKAGE_USER}:${UPLOAD_OFFLINE_PACKAGE_PASSWORD}" \
-                -X POST "$OFFLINE_PACKAGE_URL" \
-                -F "file=@$HOME/${new_offline_package_name}"
-            if [[ $? -ne 0 ]]; then
-                ctx logger info "Failed to upload offline package."
-                exit 1
-            fi
+if [ -f ~/"${OFFLINE_PACKAGE_NAME}" ]; then
+    log "Offline package found: ${OFFLINE_PACKAGE_NAME}"
+    upload=$(printf '%s' "${UPLOAD_OFFLINE_PACKAGE:-false}" | tr '[:upper:]' '[:lower:]')
+    log "Upload package: ${upload}"
+    if [ "$upload" = "true" ]; then
+        if [ -z "$(value "${UPLOAD_BASE_URL:-}")" ] || [ -z "$(value "${UPLOAD_OFFLINE_PACKAGE_USER:-}")" ] \
+                || [ -z "$(value "${UPLOAD_OFFLINE_PACKAGE_PASSWORD:-}")" ]; then
+            fail "UPLOAD_BASE_URL, UPLOAD_OFFLINE_PACKAGE_USER, or UPLOAD_OFFLINE_PACKAGE_PASSWORD is missing."
         fi
+        log "Uploading offline package..."
+        new_offline_package_name="$(date +%Y%m%d%H%M)-${OFFLINE_PACKAGE_NAME}"
+        mv ~/"${OFFLINE_PACKAGE_NAME}" ~/"${new_offline_package_name}" || fail "Failed to rename the offline package."
+        OFFLINE_PACKAGE_URL="${UPLOAD_BASE_URL}${new_offline_package_name}"
+        curl -sfku "${UPLOAD_OFFLINE_PACKAGE_USER}:${UPLOAD_OFFLINE_PACKAGE_PASSWORD}" \
+            -X POST "$OFFLINE_PACKAGE_URL" \
+            -F "file=@$HOME/${new_offline_package_name}" >/dev/null \
+            || fail "Failed to upload offline package."
         OFFLINE_PACKAGE_UPLOADED="true"
         OFFLINE_PACKAGE_NAME="$new_offline_package_name"
-        ctx logger info "Offline package uploaded to $OFFLINE_PACKAGE_URL."
+        log "Offline package uploaded to $OFFLINE_PACKAGE_URL."
     fi
 else
-    ctx logger info "Offline package (${OFFLINE_PACKAGE_NAME}) not found. Skipping upload."
+    log "Offline package (${OFFLINE_PACKAGE_NAME}) not found. Skipping upload."
     OFFLINE_PACKAGE_NAME="N/A"
 fi
 
-ctx logger info "Post install check completed."
+log "Post install check completed."
 ctx instance runtime-properties capabilities.rke2_running "$RKE2_RUNNING"
 ctx instance runtime-properties capabilities.rke2_api_url "$RKE2_API_URL"
 ctx instance runtime-properties capabilities.rke2_node_status "$RKE2_NODE_STATUS"

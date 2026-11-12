@@ -5,6 +5,84 @@ the catalog revision to upload each entry point as (see the README): the
 multi-node blueprint (`rke2_tech_ops_multi-node.yaml`) and the standalone
 blueprint (`rke2_tech_ops.yaml`) share it.
 
+## 1.2.1.0 - unreleased
+
+Moves to rke2-installer `v1.3.1` and fixes what was wrong in 1.2.0.0, in both
+entry points. Updating a 1.2.0.0 deployment to it changes nothing on the VMs.
+
+### Both
+
+- Changed: `script_url` defaults to the installer's `v1.3.1` release asset
+  instead of commit `0e066ba`. The prechecks check a GitHub release asset
+  against that release's `SHA256SUMS`, keep a file that doesn't match off the
+  VM, and no longer download with `curl -k`. A failed download says why (under
+  `set -e` the multi-node checks after `curl` and `tar` never ran). In
+  airgapped mode the offline package is downloaded and extracted on every
+  install, so a new package with the same name replaces the old one.
+- Changed: the installer runs through the fabric plugin's `run_script` instead
+  of `run_commands`. The prechecks assembled a command string with the join
+  token and the registry password in it, stored it in a runtime property
+  (`install_cmd`), and `run_commands` wrote it to the event log. A new
+  `rke2_app.sh` passes each argument whole, and nothing stores or logs them.
+- Fixed: text values reached the installer through an unquoted shell `export`,
+  so `$`, backticks, `\`, `*` and spaces in a password or other value were
+  changed or broke the command (a cluster name `Edge Lab` was split). They are
+  now single-quoted, and every text input is validated: the RKE2 version, the
+  CIDRs, the data paths (absolute or `default`), TLS SAN and Join Server
+  (lowercase FQDN or IPv4), the cluster name and the rest. None accepts a
+  single quote, and the README says the secrets' values can't hold one.
+- Fixed: the scripts left their settings, passwords and the join token
+  included, in env files on the VMs. Each script now deletes its env file
+  first.
+- Fixed: a failed check or install was retried for a long time, re-running the
+  installer each time. They now fail at once (exit code 1).
+- Fixed: the postchecks published a result without checking it. They now fail
+  when the RKE2 service isn't active after a task that installs RKE2, and
+  report `NotReady`, which CNI `none` leaves until a CNI is installed.
+- Fixed: `stop` didn't pass the data paths, so an uninstall left custom
+  `rke2_data`, `kubelet_data` and `pvc_data` directories behind. It now passes
+  them, and installer `v1.3.1` removes them.
+- Changed: online installs set `RKE2_FORCE_ONLINE=true`, so an
+  `rke2-save-version.txt` left by an earlier `save` can't switch them to
+  air-gapped mode.
+- Fixed: texts. The `debug` description was inverted (standalone). The README
+  now names the installer each version runs, says that airgapped mode runs the
+  package's installer, that a server with the ingress needs `iptables`, that CNI
+  `none` leaves the nodes `NotReady`, and that a Heal of an install node needs
+  Force reinstall.
+
+### Multi-node
+
+- Fixed: CP2-3 and the agents could join with token `N/A`. CP1's postcheck read
+  the token from `/var/lib/rancher/rke2` whatever `rke2_data` was, and the join
+  checks refused only an empty token. The postcheck now reads it from the
+  cluster's data path and fails without one, and a joining node accepts only a
+  node-token (`K10…`). The postchecks also find `kubectl` under a custom
+  `rke2_data`.
+- Changed: agents no longer get the settings only servers read (CIDRs,
+  ServiceLB, local-path, DNS utility, taint, PVC path), so their installer
+  doesn't warn that it ignores them.
+- Changed: the three prechecks are one script, `multi-node/scripts/env_precheck.sh`,
+  which only puts the installer on the VM.
+
+### Standalone
+
+- Fixed: with Registry URL set, `uninstall` and `save` failed, and with TLS SAN
+  set, `push` failed: the installer refuses those flags with them. `-registry`
+  now goes only to `install`, `install push`, `push` and `join`, `-tls-san` only
+  to `install`, `install push` and `join` as a server, and `push` or
+  `install push` without a registry stops with a reason.
+- Fixed: a reinstall or Heal of an `uninstall` task deployment ran `uninstall`
+  again. The task now runs only when the deployment is installed.
+- Fixed: the join token was published from `/var/lib/rancher/rke2` whatever
+  `rke2_data` was.
+- Fixed: `env_postcheck` ran as root, so it looked for a `save` package in
+  root's home directory instead of the one the installer wrote to. It now runs
+  as the VM user, with `sudo` only for what needs root.
+- Lint: the remaining findings are the plain-text `join_token` and Velero keys,
+  left for the credentials change. The linter no longer flags their uses,
+  because they are wrapped in quotes.
+
 ## 1.2.0.0 - 2026-10-31
 
 Safe deployment updates (Day-2). The multi-node blueprint needs

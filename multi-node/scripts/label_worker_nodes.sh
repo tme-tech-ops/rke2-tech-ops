@@ -7,11 +7,15 @@ cleanup() {
     exit $rc
 }
 trap cleanup EXIT
+# The fabric plugin leaves the settings in an env file on the VM.
+rm -f "$(dirname "$0")/env-$(basename "$0")"
 
 ctx logger info "Worker node labeling started."
 
 export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
-export PATH="${PATH}:/var/lib/rancher/rke2/bin"
+rke2_data="${RKE2_DATA:-default}"
+case "$rke2_data" in ""|default|None) rke2_data=/var/lib/rancher/rke2 ;; esac
+export PATH="${PATH}:${rke2_data}/bin"
 
 if ! command -v kubectl >/dev/null 2>&1; then
     ctx logger info "kubectl not found. Skipping worker labeling."

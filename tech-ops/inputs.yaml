@@ -27,6 +27,9 @@ inputs:
     description: |
       RKE2 Kubernetes version to install
     default: "v1.34.5+rke2r1"
+    constraints:
+      - pattern: '^v[0-9]+\.[0-9]+\.[0-9]+\+rke2r[0-9]+$'
+        error_message: "Enter an RKE2 version such as v1.34.5+rke2r1."
     display:
       group: rke2_config
       index: 1
@@ -38,7 +41,8 @@ inputs:
     allow_update: false
     display_label: CNI Plugin
     description: |
-      Container Network Interface plugin for pod networking
+      Container Network Interface plugin for pod networking. With none, the
+      install completes but the nodes stay NotReady until you install a CNI.
     default: "canal"
     constraints:
       - valid_values:
@@ -73,6 +77,9 @@ inputs:
     description: |
       Pod network CIDR range
     default: "10.42.0.0/16"
+    constraints:
+      - pattern: '^[0-9A-Fa-f:.]+/[0-9]{1,3}(,[0-9A-Fa-f:.]+/[0-9]{1,3})?$'
+        error_message: "Enter a CIDR such as 10.42.0.0/16, or an IPv4 and an IPv6 CIDR separated by a comma."
     display:
       group: rke2_config
       index: 15
@@ -86,6 +93,9 @@ inputs:
     description: |
       Service network CIDR range
     default: "10.43.0.0/16"
+    constraints:
+      - pattern: '^[0-9A-Fa-f:.]+/[0-9]{1,3}(,[0-9A-Fa-f:.]+/[0-9]{1,3})?$'
+        error_message: "Enter a CIDR such as 10.42.0.0/16, or an IPv4 and an IPv6 CIDR separated by a comma."
     display:
       group: rke2_config
       index: 20
@@ -113,7 +123,8 @@ inputs:
     allow_update: false
     display_label: Install NGINX Ingress
     description: |
-      Install the default RKE2 NGINX ingress controller
+      Install the default RKE2 NGINX ingress controller. A server with it needs
+      iptables on the VM: the installer stops early without it.
     default: true
     display:
       group: rke2_config
@@ -154,6 +165,9 @@ inputs:
     description: |
       Version of the local-path-provisioner to install
     default: "v0.0.32"
+    constraints:
+      - pattern: '^$|^[A-Za-z0-9][A-Za-z0-9.+_-]*$'
+        error_message: "Leave blank for the installer default, or enter a version such as v1.2.3 (letters, digits, dots, +, _ and -)."
     display:
       group: rke2_config
       index: 45
@@ -181,6 +195,9 @@ inputs:
       Path where etcd, containerd, and RKE2 data is stored.
       Use 'default' for /var/lib/rancher/rke2.
     default: "default"
+    constraints:
+      - pattern: '^(default|/[A-Za-z0-9._/-]*)$'
+        error_message: "Enter default, or an absolute path (letters, digits, dots, underscores, hyphens and slashes)."
     display:
       group: rke2_config
       index: 55
@@ -195,6 +212,9 @@ inputs:
       Path where kubelet data is stored.
       Use 'default' for /var/lib/kubelet.
     default: "default"
+    constraints:
+      - pattern: '^(default|/[A-Za-z0-9._/-]*)$'
+        error_message: "Enter default, or an absolute path (letters, digits, dots, underscores, hyphens and slashes)."
     display:
       group: rke2_config
       index: 60
@@ -209,6 +229,9 @@ inputs:
       Path where storage class PVCs are stored.
       Use 'default' for /opt/local-path-provisioner.
     default: "default"
+    constraints:
+      - pattern: '^(default|/[A-Za-z0-9._/-]*)$'
+        error_message: "Enter default, or an absolute path (letters, digits, dots, underscores, hyphens and slashes)."
     display:
       group: rke2_config
       index: 65
@@ -236,6 +259,9 @@ inputs:
       Additional TLS Subject Alternative Name (FQDN or IP) for the API server certificate.
       Leave blank if not needed.
     default: ""
+    constraints:
+      - pattern: '^$|^(([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}|((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))$'
+        error_message: "Leave blank, or enter a lowercase FQDN such as rke2.example.com, or an IPv4 address."
     display:
       group: rke2_config
       index: 75
@@ -251,6 +277,9 @@ inputs:
     description: |
       Velero backup tool version
     default: "v1.17.1"
+    constraints:
+      - pattern: '^$|^[A-Za-z0-9][A-Za-z0-9.+_-]*$'
+        error_message: "Leave blank for the installer default, or enter a version such as v1.2.3 (letters, digits, dots, +, _ and -)."
     display:
       group: velero_config
       index: 1
@@ -264,6 +293,9 @@ inputs:
     description: |
       Velero AWS S3-compatible plugin version
     default: "v1.13.0"
+    constraints:
+      - pattern: '^$|^[A-Za-z0-9][A-Za-z0-9.+_-]*$'
+        error_message: "Leave blank for the installer default, or enter a version such as v1.2.3 (letters, digits, dots, +, _ and -)."
     display:
       group: velero_config
       index: 5
@@ -278,6 +310,9 @@ inputs:
       S3-compatible endpoint URL for Velero backups (e.g. https://s3.example.com:8333).
       Required for 'install velero' task.
     default: ""
+    constraints:
+      - pattern: '^$|^https?://[^\s''"$`\\]+$'
+        error_message: "Leave blank, or enter an http(s) URL such as https://s3.example.com:8333 (no quotes, spaces, $, backticks or backslashes)."
     display:
       group: velero_config
       index: 10
@@ -291,6 +326,9 @@ inputs:
     description: |
       S3 access key for Velero backup storage
     default: ""
+    constraints:
+      - pattern: '^[^''\s]*$'
+        error_message: "No single quotes or spaces."
     display:
       group: velero_config
       index: 15
@@ -304,6 +342,9 @@ inputs:
     description: |
       S3 secret key for Velero backup storage
     default: ""
+    constraints:
+      - pattern: '^[^''\s]*$'
+        error_message: "No single quotes or spaces."
     display:
       group: velero_config
       index: 20
@@ -317,6 +358,9 @@ inputs:
     description: |
       S3 bucket name for Velero backup storage
     default: "velero"
+    constraints:
+      - pattern: '^$|^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$'
+        error_message: "Leave blank for the installer default, or enter an S3 bucket name - 3-63 lowercase letters, digits, dots and hyphens, starting and ending with a letter or digit."
     display:
       group: velero_config
       index: 25
@@ -330,6 +374,9 @@ inputs:
     description: |
       Comma-separated list of namespaces to back up
     default: "default"
+    constraints:
+      - pattern: '^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?(,[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$'
+        error_message: "Leave blank for the installer default, or enter namespace names separated by commas, such as default,apps."
     display:
       group: velero_config
       index: 30
@@ -343,6 +390,9 @@ inputs:
     description: |
       Cron schedule for daily backups
     default: "0 2 * * *"
+    constraints:
+      - pattern: '^$|^[0-9A-Za-z*/,@-]+( [0-9A-Za-z*/,-]+)*$'
+        error_message: "Leave blank for the installer default, or enter a cron schedule such as 0 2 * * * (letters, digits, *, /, commas, hyphens and @, separated by single spaces)."
     display:
       group: velero_config
       index: 35
@@ -356,6 +406,9 @@ inputs:
     description: |
       Backup retention period
     default: "720h"
+    constraints:
+      - pattern: '^$|^([0-9]+(h|m|s))+$'
+        error_message: "Leave blank for the installer default, or enter a duration such as 720h or 720h0m0s."
     display:
       group: velero_config
       index: 40
@@ -369,6 +422,9 @@ inputs:
     description: |
       VolumeSnapshotClass name for Longhorn CSI snapshots
     default: "longhorn-snapshot-vsc"
+    constraints:
+      - pattern: '^$|^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$'
+        error_message: "Leave blank for the installer default, or use lowercase letters, digits, dots and hyphens, starting and ending with a letter or digit."
     display:
       group: velero_config
       index: 45
@@ -382,6 +438,9 @@ inputs:
     description: |
       CSI driver name for the VolumeSnapshotClass
     default: "driver.longhorn.io"
+    constraints:
+      - pattern: '^$|^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$'
+        error_message: "Leave blank for the installer default, or use lowercase letters, digits, dots and hyphens, starting and ending with a letter or digit."
     display:
       group: velero_config
       index: 50
@@ -411,6 +470,9 @@ inputs:
       IP/FQDN of external monitoring Docker host (Loki + Grafana + Prometheus).
       Required for 'install monitoring' task.
     default: ""
+    constraints:
+      - pattern: '^$|^[A-Za-z0-9]([A-Za-z0-9.-]{0,251}[A-Za-z0-9])?$'
+        error_message: "Leave blank, or enter a host name or IPv4 address (letters, digits, dots and hyphens)."
     display:
       group: monitoring_config
       index: 1
@@ -456,6 +518,9 @@ inputs:
     description: |
       Label applied to all monitoring metrics and logs for cluster identification
     default: "edge-lab"
+    constraints:
+      - pattern: '^$|^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$'
+        error_message: "Leave blank for the installer default, or use letters, digits, dots, underscores and hyphens, starting with a letter or digit, up to 63 characters (no spaces)."
     display:
       group: monitoring_config
       index: 15
@@ -469,6 +534,9 @@ inputs:
     description: |
       Helm chart version for kube-prometheus-stack
     default: "69.8.0"
+    constraints:
+      - pattern: '^$|^[A-Za-z0-9][A-Za-z0-9.+_-]*$'
+        error_message: "Leave blank for the installer default, or enter a version such as v1.2.3 (letters, digits, dots, +, _ and -)."
     display:
       group: monitoring_config
       index: 20
@@ -482,6 +550,9 @@ inputs:
     description: |
       Helm chart version for Fluent Bit
     default: "0.55.0"
+    constraints:
+      - pattern: '^$|^[A-Za-z0-9][A-Za-z0-9.+_-]*$'
+        error_message: "Leave blank for the installer default, or enter a version such as v1.2.3 (letters, digits, dots, +, _ and -)."
     display:
       group: monitoring_config
       index: 25
@@ -495,6 +566,9 @@ inputs:
     description: |
       Fluent Bit application/image version
     default: "4.2.2"
+    constraints:
+      - pattern: '^$|^[A-Za-z0-9][A-Za-z0-9.+_-]*$'
+        error_message: "Leave blank for the installer default, or enter a version such as v1.2.3 (letters, digits, dots, +, _ and -)."
     display:
       group: monitoring_config
       index: 30
@@ -508,6 +582,9 @@ inputs:
     description: |
       Helm version to install if not already present
     default: "3.12.0"
+    constraints:
+      - pattern: '^$|^[A-Za-z0-9][A-Za-z0-9.+_-]*$'
+        error_message: "Leave blank for the installer default, or enter a version such as v1.2.3 (letters, digits, dots, +, _ and -)."
     display:
       group: monitoring_config
       index: 35
@@ -521,6 +598,9 @@ inputs:
     description: |
       In-cluster Prometheus data retention period
     default: "48h"
+    constraints:
+      - pattern: '^$|^([0-9]+(ms|s|m|h|d|w|y))+$'
+        error_message: "Leave blank for the installer default, or enter a duration such as 48h or 15d."
     display:
       group: monitoring_config
       index: 40
@@ -534,6 +614,9 @@ inputs:
     description: |
       PVC size for in-cluster Prometheus
     default: "50Gi"
+    constraints:
+      - pattern: '^$|^[0-9]+(\.[0-9]+)?(Ki|Mi|Gi|Ti|Pi|Ei|k|M|G|T|P|E)?$'
+        error_message: "Leave blank for the installer default, or enter a size such as 50Gi."
     display:
       group: monitoring_config
       index: 45
@@ -547,6 +630,9 @@ inputs:
     description: |
       StorageClass for Prometheus and Alertmanager PVCs
     default: "longhorn"
+    constraints:
+      - pattern: '^$|^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$'
+        error_message: "Leave blank for the installer default, or use lowercase letters, digits, dots and hyphens, starting and ending with a letter or digit."
     display:
       group: monitoring_config
       index: 50
@@ -560,6 +646,9 @@ inputs:
     description: |
       Space-separated list of namespaces to skip during ServiceMonitor auto-discovery
     default: "kube-system kube-public kube-node-lease default monitoring"
+    constraints:
+      - pattern: '^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?( [a-z0-9]([-a-z0-9]*[a-z0-9])?)*$'
+        error_message: "Leave blank for the installer default, or enter names separated by single spaces (lowercase letters, digits and hyphens)."
     display:
       group: monitoring_config
       index: 55
@@ -573,6 +662,9 @@ inputs:
     description: |
       Space-separated port names treated as Prometheus metrics endpoints
     default: "manager metrics http-metrics prometheus monitoring prom"
+    constraints:
+      - pattern: '^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?( [a-z0-9]([-a-z0-9]*[a-z0-9])?)*$'
+        error_message: "Leave blank for the installer default, or enter names separated by single spaces (lowercase letters, digits and hyphens)."
     display:
       group: monitoring_config
       index: 60
@@ -586,6 +678,9 @@ inputs:
     description: |
       Optional directory of additional ServiceMonitor YAML files to apply
     default: ""
+    constraints:
+      - pattern: '^$|^/[A-Za-z0-9._/-]*$'
+        error_message: "Leave blank, or enter an absolute path (letters, digits, dots, underscores, hyphens and slashes)."
     display:
       group: monitoring_config
       index: 65
@@ -611,7 +706,10 @@ inputs:
     allow_update: false
     display_label: Airgapped Mode
     description: |
-      Set to true to download and install from specified offline package
+      Set to true to download and install from specified offline package. It is
+      downloaded and extracted on every install, and it runs the rke2_installer.sh
+      it carries, not Script URL: save it with installer v1.3.1 and this
+      deployment's CNI.
     default: false
     display:
       group: env_config
@@ -728,6 +826,9 @@ inputs:
     description: |
       FQDN or IP of the RKE2 server to join. Required when run_arg is 'join'.
     default: ""
+    constraints:
+      - pattern: '^$|^(([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}|((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))$'
+        error_message: "Leave blank, or enter the server's lowercase FQDN such as rke2.example.com, or its IPv4 address."
     display:
       group: env_config
       index: 12
@@ -739,8 +840,12 @@ inputs:
     allow_update: false
     display_label: Join Token
     description: |
-      Cluster join token from the RKE2 server. Required when run_arg is 'join'.
+      Cluster join token from the RKE2 server (the node-token, K10...). Required
+      when the Install Task is join. No single quotes or spaces.
     default: ""
+    constraints:
+      - pattern: '^[^''\s]*$'
+        error_message: "No single quotes or spaces."
     display:
       group: env_config
       index: 13
@@ -753,11 +858,12 @@ inputs:
     display_label: Script URL
     description: >
       URL of the RKE2 installer script (rke2_installer.sh). The default is the
-      installer commit this release was tested with.
-    default: "https://github.com/Chubtoad5/rke2-installer/raw/0e066ba458b53a02ff860f8b99bf8625d4560031/rke2_installer.sh"
+      installer release this version was tested with (v1.3.1). A GitHub release
+      asset is checked against that release's SHA256SUMS before it runs.
+    default: "https://github.com/Chubtoad5/rke2-installer/releases/download/v1.3.1/rke2_installer.sh"
     constraints:
-      - pattern: '^https?://\S+/rke2_installer\.sh$'
-        error_message: Enter the URL of rke2_installer.sh.
+      - pattern: '^https?://[^\s''"$`\\]+/rke2_installer\.sh$'
+        error_message: "Enter an http(s) URL ending in /rke2_installer.sh (no quotes, spaces, $, backticks or backslashes)."
     display:
       group: env_config
       index: 15
@@ -815,7 +921,7 @@ inputs:
     allow_update: false
     display_label: Debug Logging
     description: |
-      Set to 0 or 1 to enable or disable debug logging
+      1 shows the installer's full output; 0 shows only the output of a failed step.
     default: 1
     constraints:
       - valid_values: [0, 1]

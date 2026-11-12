@@ -7,6 +7,8 @@ cleanup() {
     exit $rc
 }
 trap cleanup EXIT
+# The fabric plugin leaves the settings in an env file on the VM.
+rm -f "$(dirname "$0")/env-$(basename "$0")"
 
 RKE2_RUNNING="false"
 RKE2_NODE_STATUS="N/A"
@@ -19,7 +21,8 @@ if systemctl is-active --quiet rke2-agent 2>/dev/null; then
     RKE2_RUNNING="true"
     RKE2_NODE_STATUS="Agent running"
 else
-    ctx logger info "RKE2 agent service is NOT running on joined AG node."
+    ctx logger error "RKE2 agent service is NOT running on joined AG node."
+    exit 1
 fi
 
 ctx logger info "AG join post-check completed."
