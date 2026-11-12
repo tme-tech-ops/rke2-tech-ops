@@ -44,7 +44,7 @@ FAKE_INSTALLER = r'''#!/bin/sh
 SCRIPT_VERSION="1.3.1"
 : > "$STUB_DIR/args"
 for a in "$@"; do printf '%s\n' "$a" >> "$STUB_DIR/args"; done
-for n in RKE2_VERSION CLUSTER_CIDR PVC_DATA RKE2_DATA REG_PASS JOIN_TOKEN TLS_SAN RKE2_FORCE_ONLINE CLUSTER_NAME; do
+for n in RKE2_VERSION CLUSTER_CIDR PVC_DATA RKE2_DATA RKE2_DATA_DIR REG_PASS JOIN_TOKEN TLS_SAN RKE2_FORCE_ONLINE CLUSTER_NAME; do
   eval "v=\${$n-<unset>}"; printf '%s=%s\n' "$n" "$v" >> "$STUB_DIR/seen"
 done
 exit "${FAKE_RC:-0}"
@@ -293,16 +293,28 @@ class StopTests(unittest.TestCase):
                     self.assertFalse(self.bed.env_file_left)
                     if expected:
                         self.assertEqual(self.bed.seen()["RKE2_DATA"], "/opt/rke2")
+                        # Rancher's uninstall scripts find the pods under RKE2_DATA_DIR.
+                        self.assertEqual(self.bed.seen()["RKE2_DATA_DIR"], "/opt/rke2")
+
+    def test_default_data_path_sets_no_data_dir(self):
+        for shell in SHELLS:
+            for script in ("tech-ops/scripts/rke2_stop.sh", "multi-node/scripts/rke2_stop.sh"):
+                for data in ("default", "None", ""):
+                    with self.subTest(shell=shell, script=script, data=data):
+                        self.bed.run(shell, script, {"RUN_ARG": "install", "RKE2_DATA": data}, "uninstall")
+                        self.assertEqual(self.bed.seen()["RKE2_DATA_DIR"], "<unset>")
 
     def test_multi_node(self):
         for shell in SHELLS:
             for workflow, expected in [("uninstall", ["uninstall"]), ("scale", ["uninstall"]), ("heal", []), ("update", [])]:
                 with self.subTest(shell=shell, workflow=workflow):
-                    rc = self.bed.run(shell, "multi-node/scripts/rke2_stop.sh", {"PVC_DATA": "/opt/pvc"}, workflow)
+                    rc = self.bed.run(shell, "multi-node/scripts/rke2_stop.sh",
+                                      {"PVC_DATA": "/opt/pvc", "RKE2_DATA": "/data/rke2"}, workflow)
                     self.assertEqual(rc, 0)
                     self.assertEqual(self.bed.args(), expected)
                     if expected:
                         self.assertEqual(self.bed.seen()["PVC_DATA"], "/opt/pvc")
+                        self.assertEqual(self.bed.seen()["RKE2_DATA_DIR"], "/data/rke2")
 
 
 class PrecheckTests(unittest.TestCase):

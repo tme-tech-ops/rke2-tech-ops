@@ -41,7 +41,11 @@ entry points. Updating a 1.2.0.0 deployment to it changes nothing on the VMs.
   report `NotReady`, which CNI `none` leaves until a CNI is installed.
 - Fixed: `stop` didn't pass the data paths, so an uninstall left custom
   `rke2_data`, `kubelet_data` and `pvc_data` directories behind. It now passes
-  them, and installer `v1.3.1` removes them.
+  them, and installer `v1.3.1` removes them. With a custom `rke2_data` it also
+  sets `RKE2_DATA_DIR`: Rancher's uninstall scripts look for RKE2's pods there,
+  and installer `v1.3.1` doesn't pass it, so they left the pods running from a
+  deleted directory, holding the API port, and the next install on that VM
+  failed.
 - Changed: a registry password with a double quote, a backslash, a space or
   tab, `*`, `?` or `[` stops the install before the installer runs, with the
   reason. Installer `v1.3.1` writes the password into `registries.yaml`
