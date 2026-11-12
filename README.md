@@ -18,6 +18,39 @@ Both blueprints leverage the [Fabric plugin](https://docs.getcloudify.org/latest
 Download the zip attached to the release that matches your DAP and DDPC versions (not
 "Source code"); its notes give the blueprint name, revision and upload order.
 
+### RKE2 installer
+
+Each version runs a fixed release of
+[rke2-installer](https://github.com/Chubtoad5/rke2-installer), the default of
+**Script URL**, in both entry points:
+
+| Blueprint | Installer |
+|---|---|
+| 1.2.1.0 | [`v1.3.1`](https://github.com/Chubtoad5/rke2-installer/releases/tag/v1.3.1), checked against the release's `SHA256SUMS` |
+| 1.2.0.0 | commit `0e066ba`, since tagged [`v1.0.0`](https://github.com/Chubtoad5/rke2-installer/releases/tag/v1.0.0) |
+
+In airgapped mode the installer comes from the offline package instead, so it is the
+release that built the package. Save the package with installer `v1.3.1` and the
+CNI the deployment uses; the package is downloaded and extracted again on every
+install.
+
+What to know about installer `v1.3.1`:
+
+- A server with the ingress controller (**Install Ingress**) needs `iptables`
+  on the VM, or the installer stops before it installs anything. Ubuntu cloud
+  images have it; minimal images may not.
+- With CNI `none` the install completes, but the nodes stay `NotReady` until you
+  install a CNI. `rke2_node_status` then reports `NotReady`.
+- The registry password can't contain a double quote, a backslash, a space or
+  tab, `*`, `?` or `[`. The installer writes it into `registries.yaml` unescaped
+  and passes it to its image push unquoted, so they would change it. An install
+  with such a password stops before the installer runs, and says why.
+
+The values in the registry and offline secrets reach the VMs single-quoted, so
+they can't contain a single quote (`'`). Text inputs are validated in the form;
+each input's description says what it accepts. Optional text inputs left blank
+get the installer's default.
+
 ## Table of Contents
 
 - [Multi-Node Deployment](#multi-node-deployment)
@@ -127,9 +160,9 @@ These inputs appear in the **Advanced Deployment Configuration** group.
 | Enable CIS Hardening | `enable_cis` | boolean | `false` | Enable CIS Kubernetes hardening profile |
 | Utility VM Blueprint Name | `utility_blueprint_id` | string | `edge-cloudinit-utility-vm` | Name of the uploaded edge-cloudinit utility VM blueprint |
 | Utility VM Blueprint Revision | `utility_blueprint_revision` | string | `1.2.0.0` | Revision of the utility blueprint the VMs are created from; upload the utility with exactly this revision |
-| Script URL | `script_url` | string | *(pinned installer commit)* | URL of the `rke2_installer.sh` script; the default is the installer commit this release was tested with |
+| Script URL | `script_url` | string | *(installer `v1.3.1`)* | URL of the `rke2_installer.sh` script; the default is the installer release this version was tested with, checked against its `SHA256SUMS` |
 | Log Output to hide | `hide_log_output` | list | `["stdout"]` | Log output to suppress: `stdout`, `stderr`, or `both` |
-| Debug Logging | `debug` | integer | `1` | Debug logging (0 = off, 1 = on) |
+| Debug Logging | `debug` | integer | `1` | 1 shows the installer's full output; 0 shows only the output of a failed step |
 | Service Account Namespace | `sa_namespace` | string | `kube-system` | Namespace for the DAP service account and bearer token |
 | Register as DAP Infrastructure | `register_dap_infrastructure` | boolean | `false` | Register the cluster as external Kubernetes infrastructure in DAP |
 | DAP Endpoint Name | `dap_endpoint_name` | string | `""` | Human-readable endpoint name in DAP inventory (shown when DAP registration is enabled) |
@@ -273,8 +306,15 @@ and scaling are planned).
   failing the update.
 - **Reinstalling an install node keeps the cluster.** A reinstall list, Heal or
   automatic reinstall of `install_app`, `install_cp` or `install_ag` keeps RKE2
-  and its data; the installer finds RKE2 installed and leaves it. Only
-  uninstalling the deployment removes RKE2.
+  and its data: the installer runs again on that VM, finds RKE2 installed with
+  the same settings, and changes nothing. Only uninstalling the deployment (or
+  scaling a node away) removes RKE2, with the cluster's data paths. A Heal runs
+  an install node only with **Force reinstall** ticked: without it, DAP's Heal
+  skips them, because they have no status check.
+- **Updating a 1.2.0.0 deployment to 1.2.1.0** changes nothing on the VMs: they
+  keep the installer copy they were installed with (`v1.0.0`), and the
+  deployment keeps the Script URL it was installed with. A reinstall of an
+  install node then runs that `v1.0.0` copy.
 - **After a refused or failed update**, the deployment keeps the new input
   values. Run another update with the values the VMs really have.
 - **Deployments created with 1.0.x** move to this version with an update to
@@ -396,7 +436,7 @@ These inputs appear in the **Environment Configuration** group.
 | Join Mode | `join_mode` | string | `""` | Join type: `server` or `agent` (required for `join` task) |
 | Join Server FQDN/IP | `join_server` | string | `""` | FQDN or IP of the RKE2 server to join |
 | Join Token | `join_token` | string | `""` | Cluster join token from the RKE2 server |
-| Script URL | `script_url` | string | *(pinned installer commit)* | URL of the `rke2_installer.sh` script; the default is the installer commit this release was tested with |
+| Script URL | `script_url` | string | *(installer `v1.3.1`)* | URL of the `rke2_installer.sh` script; the default is the installer release this version was tested with, checked against its `SHA256SUMS` |
 | Airgapped Mode | `offline_mode` | boolean | `false` | Enable air-gapped installation |
 | Offline Binary Configuration Secret | `offline_binary_secret` | secret_key | -- | Offline archive secret (shown when offline mode is enabled) |
 | Registry Authentication Secret | `registry_secret` | secret_key | -- | Registry authentication secret |
@@ -404,7 +444,7 @@ These inputs appear in the **Environment Configuration** group.
 | Upload save package | `upload_package` | boolean | `false` | Upload the offline archive after creation (for `save` task) |
 | Upload URL location | `upload_binary_secret` | secret_key | -- | Upload destination secret (shown when upload is enabled) |
 | Log Output to hide | `hide_log_output` | list | `["stdout"]` | Log output to suppress: `stdout`, `stderr`, or `both` |
-| Debug Logging | `debug` | integer | `1` | Debug logging (0 = off, 1 = on) |
+| Debug Logging | `debug` | integer | `1` | 1 shows the installer's full output; 0 shows only the output of a failed step |
 
 ### Install Tasks
 
@@ -416,10 +456,14 @@ The `run_arg` input controls which operation the standalone blueprint performs:
 | `install velero` | Install Velero backup into an existing RKE2 cluster. Requires S3 inputs. |
 | `install monitoring` | Install kube-prometheus-stack and Fluent Bit. Requires `monitoring_host`. |
 | `install push` | Install RKE2 and push all images to a private registry. Requires registry inputs. |
-| `uninstall` | Fully uninstall RKE2 from the host. |
+| `uninstall` | Fully uninstall RKE2 from the host (when the deployment is installed only). |
 | `save` | Create an offline archive (`rke2-save.tar.gz`) for air-gapped use. |
 | `push` | Push images to a private registry. Requires registry inputs. |
 | `join` | Join an existing cluster. Requires `join_mode`, `join_server`, and `join_token`. |
+
+TLS SAN goes to the installer with `install`, `install push` and `join` as a
+server, and Registry URL with `install`, `install push`, `push` and `join`: the
+installer refuses them with the other tasks.
 
 ### Standalone Deployment Outputs
 
@@ -448,8 +492,19 @@ example `install velero` with new Velero settings).
   `install push`, `join`) uninstalls RKE2 from the VM. Uninstalling any other
   task deployment (`install velero`, `install monitoring`, `save`, `push`,
   `uninstall`) leaves RKE2, and what the task added, in place.
-- **A reinstall or Heal** of `install_app` keeps RKE2; the installer finds it
-  installed and leaves it.
+- **A reinstall or Heal** of `install_app` runs the Install Task again with the
+  installer on the VM; for `install`, `install push` and `join` the installer
+  finds RKE2 installed with the same settings and changes nothing. The
+  `uninstall` task runs only when its deployment is installed, so a reinstall or
+  Heal doesn't uninstall RKE2 again. A Heal runs `install_app` only with
+  **Force reinstall** ticked: without it, DAP's Heal skips `install_app`, which
+  has no status check.
+- **Updating a 1.2.0.0 deployment to 1.2.1.0** changes nothing on the VM, and
+  the deployment keeps the Script URL it was installed with.
+- **Several deployments on one VM** (an `install` and then `install velero`, for
+  example) share `~/rke2_installer.sh`. The newest deployment's installer
+  replaces it, and the older deployment's uninstall or reinstall then runs that
+  one: on a VM that 1.2.0.0 installed, a 1.2.1.0 deployment brings `v1.3.1`.
 - To resize the VM under the cluster, update its **edge-cloudinit-linux**
   deployment with Force ticked (this deployment depends on it); RKE2 comes back
   after the VM restarts.
@@ -466,9 +521,7 @@ The standalone blueprint is composed of several imported YAML files:
 
 **Plugins used:**
 
-- `edge-plugin` (>=3.3.17.0) -- NativeEdge integration
 - `fabric-plugin` (>=3.4.2.0) -- SSH script execution via Python Fabric
-- `utilities-plugin` (>=3.1.4.0) -- Utilities
 
 ---
 

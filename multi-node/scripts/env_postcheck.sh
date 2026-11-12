@@ -7,6 +7,13 @@ cleanup() {
     exit $rc
 }
 trap cleanup EXIT
+# The fabric plugin leaves the settings in an env file on the VM.
+rm -f "$(dirname "$0")/env-$(basename "$0")"
+
+# CP1 must run rke2-server, Ready or not (with CNI none it stays NotReady), and
+# have a join token: CP2-3 and the agents join with it.
+rke2_data="${RKE2_DATA:-default}"
+case "$rke2_data" in ""|default|None) rke2_data=/var/lib/rancher/rke2 ;; esac
 
 RKE2_RUNNING="false"
 RKE2_NODE_STATUS="N/A"
@@ -30,7 +37,7 @@ if systemctl is-active --quiet rke2-server 2>/dev/null; then
 
     # Attempt to get node status
     export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
-    export PATH="${PATH}:/var/lib/rancher/rke2/bin"
+    export PATH="${PATH}:${rke2_data}/bin"
     if command -v kubectl >/dev/null 2>&1; then
         if kubectl wait --for=condition=Ready nodes --all --timeout=120s >/dev/null 2>&1; then
             RKE2_NODE_STATUS="Ready"
@@ -41,10 +48,13 @@ if systemctl is-active --quiet rke2-server 2>/dev/null; then
         fi
     fi
 
-    # Get join token if available
-    if [ -f /var/lib/rancher/rke2/server/node-token ]; then
-        RKE2_JOIN_TOKEN=$(cat /var/lib/rancher/rke2/server/node-token)
-        ctx logger info "Captured join token."
+    # The join token, from the cluster's data path
+    if [ -s "${rke2_data}/server/node-token" ]; then
+        RKE2_JOIN_TOKEN=$(cat "${rke2_data}/server/node-token")
+        ctx logger info "Captured the join token from ${rke2_data}/server/node-token."
+    else
+        ctx logger error "No join token at ${rke2_data}/server/node-token: CP2-3 and the agents can't join."
+        exit 1
     fi
 
     RKE2_KUBECONFIG="/etc/rancher/rke2/rke2.yaml"
@@ -89,7 +99,8 @@ EOF
     done
     ctx logger info "SA setup complete: $SERVICE_ACCOUNT in $SA_NAMESPACE"
 else
-    ctx logger info "RKE2 server service is not running on CP1."
+    ctx logger error "RKE2 server service is not running on CP1."
+    exit 1
 fi
 
 ctx logger info "Post install check completed."
