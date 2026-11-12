@@ -41,6 +41,10 @@ What to know about installer `v1.3.1`:
   images have it; minimal images may not.
 - With CNI `none` the install completes, but the nodes stay `NotReady` until you
   install a CNI. `rke2_node_status` then reports `NotReady`.
+- The registry password can't contain a double quote, a backslash, a space or
+  tab, `*`, `?` or `[`. The installer writes it into `registries.yaml` unescaped
+  and passes it to its image push unquoted, so they would change it. An install
+  with such a password stops before the installer runs, and says why.
 
 The values in the registry and offline secrets reach the VMs single-quoted, so
 they can't contain a single quote (`'`). Text inputs are validated in the form;

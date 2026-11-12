@@ -80,6 +80,12 @@ fi
 if [ -n "$reg_url" ]; then
     [ -n "$reg_user" ] && [ -n "$reg_pass" ] \
         || fail "Registry URL is set, but the Registry Authentication Secret gave no username or password."
+    # Installer v1.3.1 writes the password into registries.yaml unescaped and
+    # passes it to its image push unquoted, so these would change it.
+    case "$reg_pass" in
+        *[\"\\[:space:]*?[]*)
+            fail "The registry password has a double quote, a backslash, a space or tab, or *, ? or [, which installer v1.3.1 can't pass to the registry. Use a registry password without them." ;;
+    esac
     set -- "$@" -registry "$reg_url" "$reg_user" "$reg_pass"
     shown="${shown} -registry ${reg_url} ${reg_user} ****"
 fi

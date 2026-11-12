@@ -97,7 +97,10 @@ class Bed:
         shutil.rmtree(self.dir)
 
 
-AWKWARD = "p@ss w0rd $HOME `id` \\ \" *"
+# What installer v1.3.1 passes whole: shell syntax but no quote, backslash, whitespace or glob.
+AWKWARD = "p@ss$HOME`id`!&;|(#:x"
+# What rke2_app.sh refuses for it (registries.yaml unescaped, the image push unquoted).
+REFUSED = ["Zq9\"x", "Zq9\\x", "Zq9 x", "Zq9\tx", "Zq9*x", "Zq9?x", "Zq9[x"]
 
 
 class StandaloneAppTests(unittest.TestCase):
@@ -172,6 +175,20 @@ class StandaloneAppTests(unittest.TestCase):
             self.assertEqual(self.run_app(shell, "update", RUN_ARG="install"), 0)
             self.assertEqual(self.bed.args(), ["install"])
 
+    def test_registry_password_refusals(self):
+        for shell in SHELLS:
+            for task in ("install", "push", "join"):
+                for pw in REFUSED:
+                    with self.subTest(shell=shell, task=task, pw=pw):
+                        rc = self.run_app(shell, RUN_ARG=task, JOIN_MODE="agent", JOIN_SERVER="x.example.com",
+                                          JOIN_TOKEN="K10", REG_URL="reg.example.com:443", REG_USER="u", REG_PASS=pw)
+                        self.assertEqual(rc, 1)
+                        self.assertEqual(self.bed.args(), [])
+                        self.assertNotIn(pw, self.bed.read("log"))
+            # save doesn't use the registry, so its password isn't checked
+            self.assertEqual(self.run_app(shell, RUN_ARG="save", REG_URL="reg.example.com:443", REG_USER="u",
+                                          REG_PASS="a b"), 0)
+
     def test_installer_failure_is_exit_1(self):
         for shell in SHELLS:
             with self.subTest(shell=shell):
@@ -230,6 +247,17 @@ class MultiNodeAppTests(unittest.TestCase):
                     agent = settings["ROLE"] == "agent"
                     self.assertEqual(seen["CLUSTER_CIDR"] == "<unset>", agent)
                     self.assertEqual(seen["PVC_DATA"] == "<unset>", agent)
+
+    def test_registry_password_refusals(self):
+        for shell in SHELLS:
+            for role in ("cp1", "cp", "agent"):
+                for pw in REFUSED:
+                    with self.subTest(shell=shell, role=role, pw=pw):
+                        rc = self.bed.run(shell, self.script, {"ROLE": role, "JOIN_SERVER": "10.0.0.5",
+                                                               "JOIN_TOKEN": "K10x", "REG_URL": "reg.example.com:443",
+                                                               "REG_USER": "u", "REG_PASS": pw})
+                        self.assertEqual(rc, 1)
+                        self.assertEqual(self.bed.args(), [])
 
     def test_token_check(self):
         for shell in SHELLS:

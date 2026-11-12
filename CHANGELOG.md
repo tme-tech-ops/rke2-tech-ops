@@ -42,6 +42,11 @@ entry points. Updating a 1.2.0.0 deployment to it changes nothing on the VMs.
 - Fixed: `stop` didn't pass the data paths, so an uninstall left custom
   `rke2_data`, `kubelet_data` and `pvc_data` directories behind. It now passes
   them, and installer `v1.3.1` removes them.
+- Changed: a registry password with a double quote, a backslash, a space or
+  tab, `*`, `?` or `[` stops the install before the installer runs, with the
+  reason. Installer `v1.3.1` writes the password into `registries.yaml`
+  unescaped and passes it to its image push unquoted, so it would change them.
+  The password comes from a secret, so the form can't refuse it.
 - Changed: online installs set `RKE2_FORCE_ONLINE=true`, so an
   `rke2-save-version.txt` left by an earlier `save` can't switch them to
   air-gapped mode.
